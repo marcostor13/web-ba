@@ -1,0 +1,75 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import pool from '../../../lib/db';
+
+const { id } = Astro.params;
+
+// 1. Fetch project details
+const [projectRows] = await pool.execute("SELECT * FROM projects WHERE id = ?", [id]);
+const project = (projectRows as any[])[0];
+
+if (!project) {
+  return Astro.redirect("/bathroom");
+}
+
+// 2. Fetch gallery images
+const [imageRows] = await pool.execute("SELECT * FROM project_images WHERE project_id = ? ORDER BY id ASC", [id]);
+const gallery = imageRows as any[];
+---
+
+<Layout title={`${project.name} | Projects | BA Kitchen & Bath Remodeling`}>
+  <Header />
+  <main>
+    <!-- Section 1: Hero Image -->
+    <section 
+      class="relative h-screen min-h-screen bg-cover bg-center" 
+      style={`background-image: url('${project.main_image}');`}
+    >
+      <div class="absolute inset-0 bg-black/10"></div>
+    </section>
+
+    <!-- Section 2: Title and Gallery -->
+    <section class="bg-beige-light px-6 md:px-[54px] lg:px-[140px] py-[110px]">
+      <div class="max-w-[1000px] mx-auto flex flex-col items-center gap-16">
+        
+        <!-- Project Title -->
+        <h2 class="text-[18px] md:text-[22px] uppercase tracking-[0.4em] font-light text-black-soft text-center reveal reveal-up">
+          {project.name}
+        </h2>
+
+        <!-- Main Image (Featured again in gallery) -->
+        <div class="w-full reveal reveal-up delay-100">
+          <img 
+            src={project.main_image} 
+            alt={`${project.name} main view`} 
+            class="w-full h-auto shadow-sm"
+          />
+        </div>
+
+        <!-- Gallery Grid (2 Columns) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
+          {gallery.map((img, index) => (
+            <div class="reveal reveal-up" style={`animation-delay: ${index * 100}ms`}>
+              <img 
+                src={img.image_path} 
+                alt={`${project.name} gallery image ${index + 1}`} 
+                class="w-full h-auto shadow-sm hover:scale-[1.02] transition-transform duration-700 cursor-zoom-in"
+              />
+            </div>
+          ))}
+        </div>
+
+        <!-- Back Link -->
+        <div class="mt-16 reveal reveal-up">
+          <a 
+            href="/bathroom" 
+            class="text-[11px] uppercase tracking-[0.3em] font-medium text-black-soft/40 hover:text-gold transition-colors border-b border-black-soft/10 hover:border-gold pb-1"
+          >
+            Back to Bathrooms
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

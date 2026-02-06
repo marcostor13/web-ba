@@ -1,0 +1,111 @@
+---
+const testimonials = [
+  {
+    quote: "BA is an excellent company and we would not hesitate to do business with them again. Right from the start they were courteous, friendly and helpful. They were able to install our granite quickly and it turned out beautiful. Thank you so much BA!",
+    author: "Teresa V.",
+    project: "Mielke"
+  },
+  {
+    quote: "BA is an excellent company and we would not hesitate to do business with them again. Right from the start they were courteous, friendly and helpful. They were able to install our granite quickly and it turned out beautiful. Thank you so much BA!",
+    author: "Teresa V.",
+    project: "McClatchy"
+  },
+  {
+    quote: "BA is an excellent company and we would not hesitate to do business with them again. Right from the start they were courteous, friendly and helpful. They were able to install our granite quickly and it turned out beautiful. Thank you so much BA!",
+    author: "Teresa V.",
+    project: "Luxury Kitchen"
+  },
+  {
+    quote: "BA is an excellent company and we would not hesitate to do business with them again. Right from the start they were courteous, friendly and helpful. They were able to install our granite quickly and it turned out beautiful. Thank you so much BA!",
+    author: "Teresa V.",
+    project: "Modern Reno"
+  },
+  {
+    quote: "BA is an excellent company and we would not hesitate to do business with them again. Right from the start they were courteous, friendly and helpful. They were able to install our granite quickly and it turned out beautiful. Thank you so much BA!",
+    author: "Teresa V.",
+    project: "Brookhaven"
+  }
+];
+---
+
+<section class="bg-black-soft text-white px-6 md:px-[54px] py-[110px] flex flex-col md:flex-row gap-12 md:gap-24 overflow-hidden h-screen min-h-screen">
+  <!-- Left Side: Header -->
+  <div class="w-full md:w-1/4 mb-4 md:mb-0 reveal reveal-right flex flex-col justify-start">
+    <h2 class="text-xs uppercase tracking-[0.2em] font-medium text-white/60">
+      Testimonials
+    </h2>
+  </div>
+
+  <!-- Right Side: Carousel -->
+  <div class="w-full md:w-3/4 flex flex-col justify-start gap-12">
+    <div 
+      id="testimonial-container"
+      class="flex gap-12 md:gap-24 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory"
+    >
+      {testimonials.map((t, index) => (
+        <div class={`min-w-full md:min-w-[400px] snap-start flex flex-col gap-6 reveal reveal-up delay-${(index % 3) * 100 + 200}`}>
+          <p class="text-[16px] md:text-[18px] lg:text-[22px] leading-relaxed font-light text-white/90 italic">
+            &ldquo;{t.quote}&rdquo;
+          </p>
+          <div class="flex flex-col gap-1">
+            <span class="text-[15px] font-normal text-white">{t.author}</span>
+            <span class="text-[12px] font-light text-white/40 uppercase tracking-widest">{t.project}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Navigation Images -->
+    <div class="flex gap-6 reveal reveal-up delay-500">
+      <img 
+        id="test-prev"
+        src="/home/sliderleft.webp" 
+        alt="Previous" 
+        class="w-10 h-10 cursor-pointer hover:opacity-70 transition-opacity duration-300"
+      />
+      <img 
+        id="test-next"
+        src="/home/sliderright.webp" 
+        alt="Next" 
+        class="w-10 h-10 cursor-pointer hover:opacity-70 transition-opacity duration-300"
+      />
+    </div>
+  </div>
+</section>
+
+<script>
+  const container = document.getElementById('testimonial-container');
+  const prevBtn = document.getElementById('test-prev');
+  const nextBtn = document.getElementById('test-next');
+
+  if (container && prevBtn && nextBtn) {
+    const scrollAmount = 450; // Approximated card width + gap
+
+    nextBtn.addEventListener('click', () => {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 50) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (container.scrollLeft <= 50) {
+        container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      }
+    });
+  }
+</script>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

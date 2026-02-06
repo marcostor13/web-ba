@@ -1,0 +1,13 @@
+---
+interface Props {
+  imagePath: string;
+}
+
+const { imagePath } = Astro.props;
+---
+
+<section 
+  class="h-screen min-h-screen bg-cover bg-center reveal" 
+  style={`background-image: url('${imagePath}');`}
+>
+</section>

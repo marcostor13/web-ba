@@ -1,0 +1,148 @@
+---
+const navItems = [
+  { name: 'Home', href: '/' },
+  { 
+    name: 'Projects', 
+    href: '/projects',
+    subItems: [
+      { name: 'Kitchen', href: '/kitchen' },
+      { name: 'Bathroom', href: '/bathroom' },
+      { name: 'Basement', href: '/projects/basement' },
+      { name: 'Cabinets', href: '/cabinets' },
+    ]
+  },
+  { name: 'About Us', href: '/about-us' },
+  { name: 'Our Process', href: '/our-process' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'Contact', href: '/contact' },
+];
+---
+
+<!-- Page Overlay Backdrop -->
+<div id="header-backdrop" class="fixed inset-0 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 z-40"></div>
+
+<header class="fixed top-0 left-0 w-full z-50 px-6 md:px-[54px] py-5 border-b border-white/20 transition-all duration-300" id="main-header">
+  <div class="flex justify-between items-center max-w-[1440px] mx-auto">
+    <div class="logo z-[60]">
+      <img src="/logo.webp" alt="BA Logo" class="h-[40px] md:h-[50px] w-auto brightness-0 invert" />
+    </div>
+    
+    <!-- Desktop Nav -->
+    <nav class="hidden md:block">
+      <ul class="flex gap-10 m-0 p-0 list-none">
+        {navItems.map((item) => (
+          <li class="group relative">
+            <a href={item.href} class="text-white text-sm font-normal no-underline uppercase tracking-widest transition-opacity duration-300 hover:opacity-70 flex items-center gap-1 h-full py-2">
+              {item.name}
+            </a>
+            
+            {item.subItems && (
+              <ul class="absolute left-0 top-full mt-0 w-48 bg-white shadow-xl opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 list-none p-0 border-t border-gold pb-2">
+                {item.subItems.map((sub) => (
+                  <li>
+                    <a href={sub.href} class="block px-6 py-4 text-black-soft text-[15px] font-light hover:bg-beige-light transition-colors border-b border-black-soft/5 last:border-none">
+                      {sub.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <!-- Mobile Menu Button -->
+    <button id="menu-toggle" class="md:hidden z-[60] text-white focus:outline-none" aria-label="Toggle Menu">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" id="menu-icon" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" class="hidden" id="close-icon" />
+      </svg>
+    </button>
+  </div>
+
+</header>
+
+<!-- Mobile Menu Overlay (Moved outside to avoid header scroll issues) -->
+<div id="mobile-menu" class="fixed inset-0 bg-black-soft/95 z-50 flex flex-col justify-center items-center transform translate-x-full transition-transform duration-500 ease-in-out md:hidden h-screen">
+  <nav>
+    <ul class="flex flex-col gap-8 text-center m-0 p-0 list-none">
+      {navItems.map((item) => (
+        <li class="flex flex-col gap-4">
+          <a href={item.href} class="text-white text-3xl font-light no-underline uppercase tracking-widest transition-opacity duration-300 hover:opacity-70 mobile-link">
+            {item.name}
+          </a>
+          {item.subItems && (
+            <div class="flex flex-wrap justify-center gap-4 px-6">
+              {item.subItems.map((sub) => (
+                <a href={sub.href} class="text-white/60 text-sm uppercase tracking-widest hover:text-white transition-colors">
+                  {sub.name}
+                </a>
+              ))}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  </nav>
+</div>
+
+<script>
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const menuIcon = document.getElementById('menu-icon');
+  const closeIcon = document.getElementById('close-icon');
+  const header = document.getElementById('main-header');
+  const mobileLinks = document.querySelectorAll('.mobile-link');
+  const backdrop = document.getElementById('header-backdrop');
+  const navItemsWithSub = document.querySelectorAll('.group.relative');
+
+  let isMenuOpen = false;
+
+  // Backdrop effect on hover
+  navItemsWithSub.forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      backdrop?.classList.remove('opacity-0', 'pointer-events-none');
+    });
+    item.addEventListener('mouseleave', () => {
+      backdrop?.classList.add('opacity-0', 'pointer-events-none');
+    });
+  });
+
+  function toggleMenu() {
+    isMenuOpen = !isMenuOpen;
+    
+    if (isMenuOpen) {
+      mobileMenu?.classList.remove('translate-x-full');
+      menuIcon?.classList.add('hidden');
+      closeIcon?.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // Prevent scroll
+    } else {
+      mobileMenu?.classList.add('translate-x-full');
+      menuIcon?.classList.remove('hidden');
+      closeIcon?.classList.add('hidden');
+      document.body.style.overflow = ''; // Restore scroll
+    }
+  }
+
+  menuToggle?.addEventListener('click', toggleMenu);
+
+  // Close menu when a link is clicked
+  mobileLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      if (isMenuOpen) toggleMenu();
+    });
+  });
+
+  // Header scroll effect
+  window.addEventListener('scroll', () => {
+    const mainHeader = document.getElementById('main-header');
+    if (window.scrollY > 50) {
+      mainHeader?.classList.add('bg-black-soft/80', 'backdrop-blur-sm', 'py-3');
+      mainHeader?.classList.remove('py-5');
+    } else {
+      mainHeader?.classList.remove('bg-black-soft/80', 'backdrop-blur-sm', 'py-3');
+      mainHeader?.classList.add('py-5');
+    }
+  });
+</script>

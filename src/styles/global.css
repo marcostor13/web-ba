@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --font-urbanist: "Urbanist", sans-serif;
+
+  --color-beige-light: #F4E9DE;
+  --color-black-soft: #151006;
+  --color-gold: #956B24;
+  --color-gray-dark: #717171;
+  --color-gray-light: #B5B5B5;
+}
+
+@layer base {
+  html, body {
+    @apply font-urbanist bg-beige-light text-black-soft scroll-smooth;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  h1 {
+    @apply text-[60px] leading-[1.1] font-normal m-0;
+  }
+
+  h2 {
+    @apply text-[35px] leading-[1.2] font-medium m-0;
+  }
+
+  h3 {
+    @apply text-[30px] leading-[1.2] font-normal m-0;
+  }
+
+  p {
+    @apply text-[17px] leading-[1.2] m-0;
+  }
+}
+
+@layer components {
+  .section-padding {
+    @apply pt-[110px] px-[54px] pb-[110px];
+  }
+
+  .container-custom {
+    @apply w-full max-w-[1440px] mx-auto;
+  }
+}
+
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    filter: blur(8px);
+    transition: all 1.2s cubic-bezier(0.17, 0.55, 0.55, 1);
+  }
+
+  .reveal-up {
+    transform: translateY(30px);
+  }
+
+  .reveal-down {
+    transform: translateY(-30px);
+  }
+
+  .reveal-right {
+    transform: translateX(-30px);
+  }
+
+  .revealed {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(0, 0);
+  }
+
+  .delay-100 { transition-delay: 100ms; }
+  .delay-200 { transition-delay: 200ms; }
+  .delay-300 { transition-delay: 300ms; }
+  .delay-400 { transition-delay: 400ms; }
+  .delay-500 { transition-delay: 500ms; }
+  .delay-700 { transition-delay: 700ms; }
+}
