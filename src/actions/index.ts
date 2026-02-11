@@ -183,13 +183,15 @@ export const server = {
                 ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
                 : [];
 
-            for (const file of galleryFiles) {
-                if (file.size === 0) continue;
-                const galleryPath = await saveAsWebP(file, "uploads/projects");
-                await pool.execute(
-                    "INSERT INTO project_images (project_id, image_path) VALUES (?, ?)",
-                    [projectId, galleryPath]
-                );
+            if (galleryFiles.length > 0) {
+                await Promise.all(galleryFiles.map(async (file) => {
+                    if (file.size === 0) return;
+                    const galleryPath = await saveAsWebP(file, "uploads/projects");
+                    await pool.execute(
+                        "INSERT INTO project_images (project_id, image_path) VALUES (?, ?)",
+                        [projectId, galleryPath]
+                    );
+                }));
             }
 
             return { success: true };
@@ -275,10 +277,12 @@ export const server = {
                 ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
                 : [];
 
-            for (const file of galleryFiles) {
-                if (file.size === 0) continue;
-                const galleryPath = await saveAsWebP(file, "uploads/projects");
-                await pool.execute("INSERT INTO project_images (project_id, image_path) VALUES (?, ?)", [input.id, galleryPath]);
+            if (galleryFiles.length > 0) {
+                await Promise.all(galleryFiles.map(async (file) => {
+                    if (file.size === 0) return;
+                    const galleryPath = await saveAsWebP(file, "uploads/projects");
+                    await pool.execute("INSERT INTO project_images (project_id, image_path) VALUES (?, ?)", [input.id, galleryPath]);
+                }));
             }
 
             return { success: true };

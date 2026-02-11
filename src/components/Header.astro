@@ -18,8 +18,7 @@ const navItems = [
 ];
 ---
 
-<!-- Page Overlay Backdrop -->
-<div id="header-backdrop" class="fixed inset-0 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 z-40"></div>
+<!-- Page Overlay Backdrop Removed -->
 
 <header class="fixed top-0 left-0 w-full z-50 px-6 md:px-[54px] py-5 border-b border-white/20 transition-all duration-300" id="main-header">
   <div class="flex justify-between items-center max-w-[1440px] mx-auto">
@@ -94,20 +93,11 @@ const navItems = [
   const closeIcon = document.getElementById('close-icon');
   const header = document.getElementById('main-header');
   const mobileLinks = document.querySelectorAll('.mobile-link');
-  const backdrop = document.getElementById('header-backdrop');
-  const navItemsWithSub = document.querySelectorAll('.group.relative');
-
+  // Backdrop removed
+  
   let isMenuOpen = false;
 
-  // Backdrop effect on hover
-  navItemsWithSub.forEach(item => {
-    item.addEventListener('mouseenter', () => {
-      backdrop?.classList.remove('opacity-0', 'pointer-events-none');
-    });
-    item.addEventListener('mouseleave', () => {
-      backdrop?.classList.add('opacity-0', 'pointer-events-none');
-    });
-  });
+  // Backdrop interactions removed
 
   function toggleMenu() {
     isMenuOpen = !isMenuOpen;
