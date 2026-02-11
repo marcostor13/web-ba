@@ -34,18 +34,42 @@ const s3Client = new S3Client({
  * @returns The full S3 URL of the saved WebP image
  */
 export async function saveAsWebP(file: File, uploadDir: string): Promise<string> {
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
     const timestamp = Date.now();
-    const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/\s+/g, '-').toLowerCase();
-    const fileName = `${timestamp}-${cleanName}.webp`;
-    const key = `${uploadDir}/${fileName}`.replace(/\/+/g, '/').replace(/^\//, '');
+    const originalExtension = file.name.split('.').pop() || 'bin';
+    const cleanBaseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
-    const processedBuffer = await sharp(buffer)
-        .webp({ quality: 80 })
-        .toBuffer();
+    console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
 
-    const bucket = import.meta.env.AWS_S3_BUCKET_NAME;
-    console.log(`Starting upload to bucket: ${bucket}, key: ${key}`);
+    let processedBuffer = originalBuffer;
+    let finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.webp`;
+    let contentType = "image/webp";
+
+    try {
+        // Only attempt sharp processing for images
+        if (file.type.startsWith('image/')) {
+            console.log("Attempting image optimization with sharp...");
+            processedBuffer = await sharp(originalBuffer)
+                .webp({ quality: 80 })
+                .toBuffer();
+            console.log("Image optimized successfully to WebP");
+        } else {
+            console.log("Not an image or unsupported type, skipping optimization");
+            finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.${originalExtension}`;
+            contentType = file.type || "application/octet-stream";
+        }
+    } catch (sharpError) {
+        console.warn("Sharp optimization failed, falling back to original file:", sharpError);
+        // Fallback: Use original extension and original buffer
+        finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.${originalExtension}`;
+        contentType = file.type || "application/octet-stream";
+        processedBuffer = originalBuffer;
+    }
+
+    const key = finalKey.replace(/\/+/g, '/').replace(/^\//, '');
+    const bucket = getEnv('AWS_S3_BUCKET_NAME');
+
+    console.log(`Starting upload to bundle: ${bucket}, key: ${key} (Size: ${processedBuffer.length} bytes)`);
 
     const upload = new Upload({
         client: s3Client,
@@ -53,18 +77,15 @@ export async function saveAsWebP(file: File, uploadDir: string): Promise<string>
             Bucket: bucket,
             Key: key,
             Body: processedBuffer,
-            ContentType: "image/webp",
+            ContentType: contentType,
         },
     });
 
     try {
         await upload.done();
-        console.log("Upload successful");
+        console.log(`Upload successful for: ${key}`);
     } catch (error: any) {
         console.error("S3 Upload Error:", error);
-        if (error.$metadata) {
-            console.error("S3 Error Metadata:", error.$metadata);
-        }
         throw error;
     }
 
