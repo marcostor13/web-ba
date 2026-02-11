@@ -149,6 +149,32 @@ export const server = {
         },
     }),
 
+    // DIAGNOSTIC ACTION
+    ping: defineAction({
+        accept: "json",
+        input: z.object({}).optional(),
+        handler: async (input, context) => {
+            const requestId = Math.random().toString(36).substring(7);
+            console.log(`[${requestId}] Ping diagnostic started`);
+            try {
+                const [rows] = await pool.execute("SELECT 1 as connected");
+                const dbStatus = (rows as any[])[0]?.connected === 1;
+
+                return {
+                    success: true,
+                    db: dbStatus ? "Connected" : "Failed",
+                    env: {
+                        hasBucket: !!process.env.AWS_S3_BUCKET_NAME || !!(import.meta as any).env?.AWS_S3_BUCKET_NAME,
+                        region: process.env.AWS_S3_REGION || (import.meta as any).env?.AWS_S3_REGION || "not set"
+                    }
+                };
+            } catch (e: any) {
+                console.error(`[${requestId}] Ping failed:`, e);
+                return { success: false, error: e.message };
+            }
+        }
+    }),
+
     // PROJECTS ACTIONS
     createProject: defineAction({
         accept: "form",
@@ -162,42 +188,57 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
+            const requestId = Math.random().toString(36).substring(7);
+            console.log(`[${requestId}] Starting createProject action`);
+
             try {
                 // 1. Save Main Image
+                console.log(`[${requestId}] Processing main image...`);
                 const mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
+                console.log(`[${requestId}] Main image uploaded: ${mainImagePath}`);
 
                 // 2. Save Logo Overlay (Optional)
                 let logoOverlayPath = null;
                 if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
+                    console.log(`[${requestId}] Processing logo overlay...`);
                     logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
+                    console.log(`[${requestId}] Logo overlay uploaded: ${logoOverlayPath}`);
                 }
 
                 // 3. Insert Project
+                console.log(`[${requestId}] Inserting project into database...`);
                 const [result] = await pool.execute(
                     "INSERT INTO projects (name, main_image, logo_overlay, category) VALUES (?, ?, ?, ?)",
                     [input.name, mainImagePath, logoOverlayPath, input.category]
                 );
                 const projectId = (result as any).insertId;
+                console.log(`[${requestId}] Project inserted with ID: ${projectId}`);
 
-                // 4. Save Gallery Images
+                // 4. Save Gallery Images (SEQUENTIAL to avoid resource limits in Netlify)
                 const galleryFiles = input.gallery
                     ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
                     : [];
 
                 if (galleryFiles.length > 0) {
-                    await Promise.all(galleryFiles.map(async (file) => {
-                        if (file.size === 0) return;
+                    console.log(`[${requestId}] Processing ${galleryFiles.length} gallery images sequentially...`);
+                    for (let i = 0; i < galleryFiles.length; i++) {
+                        const file = galleryFiles[i];
+                        if (file.size === 0) continue;
+
+                        console.log(`[${requestId}] Processing gallery image ${i + 1}/${galleryFiles.length}...`);
                         const galleryPath = await saveAsWebP(file, "uploads/projects");
                         await pool.execute(
                             "INSERT INTO project_images (project_id, image_path) VALUES (?, ?)",
                             [projectId, galleryPath]
                         );
-                    }));
+                    }
+                    console.log(`[${requestId}] All gallery images processed`);
                 }
 
+                console.log(`[${requestId}] createProject completed successfully`);
                 return { success: true };
             } catch (error: any) {
-                console.error("Error in createProject action:", error);
+                console.error(`[${requestId}] Error in createProject action:`, error);
                 return {
                     success: false,
                     error: error.message || "An unexpected error occurred while creating the project."
@@ -214,24 +255,29 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            // Fetch images to delete from S3
-            const [rows] = await pool.execute("SELECT main_image, logo_overlay FROM projects WHERE id = ?", [input.id]);
-            const project = (rows as any[])[0];
+            try {
+                // Fetch images to delete from S3
+                const [rows] = await pool.execute("SELECT main_image, logo_overlay FROM projects WHERE id = ?", [input.id]);
+                const project = (rows as any[])[0];
 
-            if (project) {
-                const imagesToDelete = [project.main_image, project.logo_overlay].filter(Boolean);
+                if (project) {
+                    const imagesToDelete = [project.main_image, project.logo_overlay].filter(Boolean);
 
-                // Fetch gallery images
-                const [galleryRows] = await pool.execute("SELECT image_path FROM project_images WHERE project_id = ?", [input.id]);
-                (galleryRows as any[]).forEach(row => imagesToDelete.push(row.image_path));
+                    // Fetch gallery images
+                    const [galleryRows] = await pool.execute("SELECT image_path FROM project_images WHERE project_id = ?", [input.id]);
+                    (galleryRows as any[]).forEach(row => imagesToDelete.push(row.image_path));
 
-                for (const imgPath of imagesToDelete) {
-                    await deleteFromS3(imgPath);
+                    for (const imgPath of imagesToDelete) {
+                        await deleteFromS3(imgPath);
+                    }
                 }
-            }
 
-            await pool.execute("DELETE FROM projects WHERE id = ?", [input.id]);
-            return { success: true };
+                await pool.execute("DELETE FROM projects WHERE id = ?", [input.id]);
+                return { success: true };
+            } catch (error: any) {
+                console.error("Error in deleteProject action:", error);
+                return { success: false, error: error.message || "Error deleting project" };
+            }
         },
     }),
 
@@ -281,17 +327,22 @@ export const server = {
                     [input.name, mainImagePath, logoOverlayPath, input.category, input.id]
                 );
 
-                // 5. Append new gallery images
+                // 5. Append new gallery images (SEQUENTIAL to avoid resource limits)
                 const galleryFiles = input.gallery
                     ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
                     : [];
 
                 if (galleryFiles.length > 0) {
-                    await Promise.all(galleryFiles.map(async (file) => {
-                        if (file.size === 0) return;
+                    console.log(`[${input.id}] Processing ${galleryFiles.length} new gallery images sequentially...`);
+                    for (let i = 0; i < galleryFiles.length; i++) {
+                        const file = galleryFiles[i];
+                        if (file.size === 0) continue;
+
+                        console.log(`[${input.id}] Processing gallery image ${i + 1}/${galleryFiles.length}...`);
                         const galleryPath = await saveAsWebP(file, "uploads/projects");
                         await pool.execute("INSERT INTO project_images (project_id, image_path) VALUES (?, ?)", [input.id, galleryPath]);
-                    }));
+                    }
+                    console.log(`[${input.id}] Gallery update completed`);
                 }
 
                 return { success: true };

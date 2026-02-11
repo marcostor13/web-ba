@@ -2,22 +2,29 @@ import sharp from 'sharp';
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 
-console.log("S3 Runtime Check:", {
-    hasBucket: !!import.meta.env.AWS_S3_BUCKET_NAME,
-    region: import.meta.env.AWS_S3_REGION || "us-east-1",
-    hasAccessKey: !!import.meta.env.AWS_ACCESS_KEY_ID_BA,
-    hasSecretKey: !!import.meta.env.AWS_SECRET_ACCESS_KEY_BA,
-    endpoint: import.meta.env.AWS_S3_ENDPOINT || "none",
+const getEnv = (key: string, defaultValue: string = ''): string => {
+    // Check both import.meta.env and process.env for SSR/Netlify compatibility
+    const value = (import.meta as any).env?.[key] || (process.env as any)[key] || defaultValue;
+    return value;
+};
+
+console.log("S3 Runtime Check (Robust):", {
+    hasBucket: !!getEnv('AWS_S3_BUCKET_NAME'),
+    region: getEnv('AWS_S3_REGION', 'us-east-1'),
+    hasAccessKey: !!getEnv('AWS_ACCESS_KEY_ID_BA'),
+    hasSecretKey: !!getEnv('AWS_SECRET_ACCESS_KEY_BA'),
+    endpoint: getEnv('AWS_S3_ENDPOINT', 'none'),
+    forcePathStyle: getEnv('AWS_S3_FORCE_PATH_STYLE') === "true"
 });
 
 const s3Client = new S3Client({
-    region: import.meta.env.AWS_S3_REGION || "us-east-1",
+    region: getEnv('AWS_S3_REGION', 'us-east-1'),
     credentials: {
-        accessKeyId: import.meta.env.AWS_ACCESS_KEY_ID_BA || "",
-        secretAccessKey: import.meta.env.AWS_SECRET_ACCESS_KEY_BA || "",
+        accessKeyId: getEnv('AWS_ACCESS_KEY_ID_BA'),
+        secretAccessKey: getEnv('AWS_SECRET_ACCESS_KEY_BA'),
     },
-    endpoint: import.meta.env.AWS_S3_ENDPOINT || undefined,
-    forcePathStyle: import.meta.env.AWS_S3_FORCE_PATH_STYLE === "true" || import.meta.env.AWS_S3_FORCE_PATH_STYLE === true,
+    endpoint: getEnv('AWS_S3_ENDPOINT') || undefined,
+    forcePathStyle: getEnv('AWS_S3_FORCE_PATH_STYLE') === "true",
 });
 
 /**
