@@ -12,8 +12,8 @@ console.log("S3 Configuration:", {
 const s3Client = new S3Client({
     region: import.meta.env.AWS_S3_REGION || "us-east-1",
     credentials: {
-        accessKeyId: import.meta.env.AWS_ACCESS_KEY_ID || "",
-        secretAccessKey: import.meta.env.AWS_SECRET_ACCESS_KEY || "",
+        accessKeyId: import.meta.env.AWS_ACCESS_KEY_ID_BA || "",
+        secretAccessKey: import.meta.env.AWS_SECRET_ACCESS_KEY_BA || "",
     },
     endpoint: import.meta.env.AWS_S3_ENDPOINT || undefined,
     forcePathStyle: import.meta.env.AWS_S3_FORCE_PATH_STYLE === "true" || import.meta.env.AWS_S3_FORCE_PATH_STYLE === true,
