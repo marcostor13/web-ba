@@ -91,5 +91,61 @@ const menuItems = [
         <slot />
       </main>
 		</div>
+
+    <!-- Global Submission Loader -->
+    <div id="admin-loader" class="fixed inset-0 bg-black-soft/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+      <div class="flex flex-col items-center gap-6 bg-white p-10 shadow-2xl rounded-sm">
+        <div class="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin"></div>
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-[12px] uppercase tracking-[0.3em] font-bold text-black-soft">Processing</p>
+          <p class="text-[10px] uppercase tracking-[0.2em] text-black-soft/40 italic">Please wait while we complete the action</p>
+        </div>
+      </div>
+    </div>
+
+    <style is:global>
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+
+    <script>
+      const loader = document.getElementById('admin-loader');
+      
+      // Global form submission interceptor
+      document.addEventListener('submit', (e) => {
+        const form = e.target as HTMLFormElement;
+        
+        // Don't show for logout or simple get forms if any
+        if (form.action.includes('logout')) return;
+        
+        // Show loader
+        if (loader) {
+          loader.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        
+        // Disable all submit buttons in this form
+        const submitButtons = form.querySelectorAll('button[type="submit"]');
+        submitButtons.forEach(btn => {
+          (btn as HTMLButtonElement).disabled = true;
+          (btn as HTMLButtonElement).style.opacity = '0.5';
+          (btn as HTMLButtonElement).style.cursor = 'not-allowed';
+        });
+      });
+
+      // Simple mobile menu toggle
+      const mobileBtn = document.getElementById('mobile-menu-btn');
+      mobileBtn?.addEventListener('click', () => {
+        const sidebar = document.querySelector('aside');
+        sidebar?.classList.toggle('hidden');
+        sidebar?.classList.toggle('fixed');
+        sidebar?.classList.toggle('inset-0');
+        sidebar?.classList.toggle('z-[70]');
+      });
+    </script>
 	</body>
 </html>
