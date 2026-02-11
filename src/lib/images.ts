@@ -119,14 +119,12 @@ export async function deleteFromS3(url: string | null): Promise<void> {
     if (!url) return;
 
     try {
-        const bucket = import.meta.env.AWS_S3_BUCKET_NAME;
+        const bucket = getEnv('AWS_S3_BUCKET_NAME');
         if (!bucket) return;
 
         // Extract key from URL
-        // This is a simple extraction logic, might need adjustment for complex custom endpoints
         let key = "";
-
-        const endpoint = import.meta.env.AWS_S3_ENDPOINT;
+        const endpoint = getEnv('AWS_S3_ENDPOINT');
 
         if (url.includes(".amazonaws.com/")) {
             // Standard S3 URL
@@ -159,7 +157,12 @@ export async function deleteFromS3(url: string | null): Promise<void> {
             Bucket: bucket,
             Key: key,
         }));
-    } catch (e) {
-        console.error(`Error deleting from S3: ${url}`, e);
+
+        console.log(`Successfully deleted old image: ${key}`);
+
+    } catch (e: any) {
+        // Log as warning only, do not throw. 
+        // We don't want to break the update process just because we couldn't delete an old file.
+        console.warn(`Warning: Failed to delete image from S3 (${url}). Reason: ${e.message}`);
     }
 }
