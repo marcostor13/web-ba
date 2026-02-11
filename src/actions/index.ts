@@ -4,9 +4,7 @@ import { lucia } from "../lib/auth";
 import pool from "../lib/db";
 import { generateIdFromEntropySize } from "lucia";
 import { hash, compare } from "bcryptjs";
-import fs from "node:fs";
-import path from "node:path";
-import { saveAsWebP } from "../lib/images";
+import { saveAsWebP, deleteFromS3 } from "../lib/images";
 
 export const server = {
     // ... existing auth actions (register, login, logout)
@@ -106,7 +104,7 @@ export const server = {
                 const [rows] = await pool.execute("SELECT image FROM cabinets WHERE id = ?", [input.id]);
                 const oldCabinet = (rows as any[])[0];
                 if (oldCabinet && oldCabinet.image) {
-                    try { await fs.promises.unlink(path.join(process.cwd(), "public", oldCabinet.image)); } catch (e) { }
+                    await deleteFromS3(oldCabinet.image);
                 }
             }
 
@@ -138,13 +136,12 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            // Get image path to delete file too if possible
+            // Get image path to delete from S3
             const [rows] = await pool.execute("SELECT image FROM cabinets WHERE id = ?", [input.id]);
             const cabinet = (rows as any[])[0];
 
             if (cabinet && cabinet.image) {
-                const fullPath = path.join(process.cwd(), "public", cabinet.image);
-                try { await fs.promises.unlink(fullPath); } catch (e) { }
+                await deleteFromS3(cabinet.image);
             }
 
             await pool.execute("DELETE FROM cabinets WHERE id = ?", [input.id]);
@@ -164,9 +161,6 @@ export const server = {
         }),
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
-
-            const uploadDir = path.join(process.cwd(), "public", "uploads", "projects");
-            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
             // 1. Save Main Image
             const mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
@@ -210,7 +204,7 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            // Fetch images to delete from disk
+            // Fetch images to delete from S3
             const [rows] = await pool.execute("SELECT main_image, logo_overlay FROM projects WHERE id = ?", [input.id]);
             const project = (rows as any[])[0];
 
@@ -222,8 +216,7 @@ export const server = {
                 (galleryRows as any[]).forEach(row => imagesToDelete.push(row.image_path));
 
                 for (const imgPath of imagesToDelete) {
-                    const fullPath = path.join(process.cwd(), "public", imgPath);
-                    if (fs.existsSync(fullPath)) await fs.promises.unlink(fullPath);
+                    await deleteFromS3(imgPath);
                 }
             }
 
@@ -245,9 +238,6 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            const uploadDir = path.join(process.cwd(), "public", "uploads", "projects");
-            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
             // 1. Get current project state
             const [rows] = await pool.execute("SELECT * FROM projects WHERE id = ?", [input.id]);
             const project = (rows as any[])[0];
@@ -260,19 +250,17 @@ export const server = {
             if (input.mainImage && (input.mainImage as File).size > 0) {
                 mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
 
-                // Unlink old
-                const oldPath = path.join(process.cwd(), "public", project.main_image);
-                if (fs.existsSync(oldPath)) await fs.promises.unlink(oldPath);
+                // Delete old
+                await deleteFromS3(project.main_image);
             }
 
             // 3. Handle logo update
             if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
                 logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
 
-                // Unlink old
+                // Delete old
                 if (project.logo_overlay) {
-                    const oldPath = path.join(process.cwd(), "public", project.logo_overlay);
-                    if (fs.existsSync(oldPath)) await fs.promises.unlink(oldPath);
+                    await deleteFromS3(project.logo_overlay);
                 }
             }
 
@@ -402,7 +390,7 @@ export const server = {
                     const [rows] = await connection.execute("SELECT main_image FROM blog_posts WHERE id = ?", [input.id]);
                     const oldPost = (rows as any[])[0];
                     if (oldPost && oldPost.main_image) {
-                        try { await fs.promises.unlink(path.join(process.cwd(), "public", oldPost.main_image)); } catch (e) { }
+                        await deleteFromS3(oldPost.main_image);
                     }
 
                     await connection.execute("UPDATE blog_posts SET title = ?, short_description = ?, main_image = ? WHERE id = ?",
