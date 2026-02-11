@@ -2,11 +2,12 @@ import sharp from 'sharp';
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 
-console.log("S3 Configuration:", {
+console.log("S3 Runtime Check:", {
+    hasBucket: !!import.meta.env.AWS_S3_BUCKET_NAME,
     region: import.meta.env.AWS_S3_REGION || "us-east-1",
-    bucket: import.meta.env.AWS_S3_BUCKET_NAME,
-    endpoint: import.meta.env.AWS_S3_ENDPOINT || undefined,
-    forcePathStyle: import.meta.env.AWS_S3_FORCE_PATH_STYLE === "true" || import.meta.env.AWS_S3_FORCE_PATH_STYLE === true,
+    hasAccessKey: !!import.meta.env.AWS_ACCESS_KEY_ID_BA,
+    hasSecretKey: !!import.meta.env.AWS_SECRET_ACCESS_KEY_BA,
+    endpoint: import.meta.env.AWS_S3_ENDPOINT || "none",
 });
 
 const s3Client = new S3Client({

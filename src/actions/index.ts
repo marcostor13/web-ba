@@ -162,39 +162,47 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            // 1. Save Main Image
-            const mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
+            try {
+                // 1. Save Main Image
+                const mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
 
-            // 2. Save Logo Overlay (Optional)
-            let logoOverlayPath = null;
-            if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
-                logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
+                // 2. Save Logo Overlay (Optional)
+                let logoOverlayPath = null;
+                if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
+                    logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
+                }
+
+                // 3. Insert Project
+                const [result] = await pool.execute(
+                    "INSERT INTO projects (name, main_image, logo_overlay, category) VALUES (?, ?, ?, ?)",
+                    [input.name, mainImagePath, logoOverlayPath, input.category]
+                );
+                const projectId = (result as any).insertId;
+
+                // 4. Save Gallery Images
+                const galleryFiles = input.gallery
+                    ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
+                    : [];
+
+                if (galleryFiles.length > 0) {
+                    await Promise.all(galleryFiles.map(async (file) => {
+                        if (file.size === 0) return;
+                        const galleryPath = await saveAsWebP(file, "uploads/projects");
+                        await pool.execute(
+                            "INSERT INTO project_images (project_id, image_path) VALUES (?, ?)",
+                            [projectId, galleryPath]
+                        );
+                    }));
+                }
+
+                return { success: true };
+            } catch (error: any) {
+                console.error("Error in createProject action:", error);
+                return {
+                    success: false,
+                    error: error.message || "An unexpected error occurred while creating the project."
+                };
             }
-
-            // 3. Insert Project
-            const [result] = await pool.execute(
-                "INSERT INTO projects (name, main_image, logo_overlay, category) VALUES (?, ?, ?, ?)",
-                [input.name, mainImagePath, logoOverlayPath, input.category]
-            );
-            const projectId = (result as any).insertId;
-
-            // 4. Save Gallery Images
-            const galleryFiles = input.gallery
-                ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
-                : [];
-
-            if (galleryFiles.length > 0) {
-                await Promise.all(galleryFiles.map(async (file) => {
-                    if (file.size === 0) return;
-                    const galleryPath = await saveAsWebP(file, "uploads/projects");
-                    await pool.execute(
-                        "INSERT INTO project_images (project_id, image_path) VALUES (?, ?)",
-                        [projectId, galleryPath]
-                    );
-                }));
-            }
-
-            return { success: true };
         },
     }),
 
@@ -240,52 +248,60 @@ export const server = {
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
 
-            // 1. Get current project state
-            const [rows] = await pool.execute("SELECT * FROM projects WHERE id = ?", [input.id]);
-            const project = (rows as any[])[0];
-            if (!project) return { success: false, error: "Project not found" };
+            try {
+                // 1. Get current project state
+                const [rows] = await pool.execute("SELECT * FROM projects WHERE id = ?", [input.id]);
+                const project = (rows as any[])[0];
+                if (!project) return { success: false, error: "Project not found" };
 
-            let mainImagePath = project.main_image;
-            let logoOverlayPath = project.logo_overlay;
+                let mainImagePath = project.main_image;
+                let logoOverlayPath = project.logo_overlay;
 
-            // 2. Handle main image update
-            if (input.mainImage && (input.mainImage as File).size > 0) {
-                mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
+                // 2. Handle main image update
+                if (input.mainImage && (input.mainImage as File).size > 0) {
+                    mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
 
-                // Delete old
-                await deleteFromS3(project.main_image);
-            }
-
-            // 3. Handle logo update
-            if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
-                logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
-
-                // Delete old
-                if (project.logo_overlay) {
-                    await deleteFromS3(project.logo_overlay);
+                    // Delete old
+                    await deleteFromS3(project.main_image);
                 }
+
+                // 3. Handle logo update
+                if (input.logoOverlay && (input.logoOverlay as File).size > 0) {
+                    logoOverlayPath = await saveAsWebP(input.logoOverlay as File, "uploads/projects");
+
+                    // Delete old
+                    if (project.logo_overlay) {
+                        await deleteFromS3(project.logo_overlay);
+                    }
+                }
+
+                // 4. Update core project info
+                await pool.execute(
+                    "UPDATE projects SET name = ?, main_image = ?, logo_overlay = ?, category = ? WHERE id = ?",
+                    [input.name, mainImagePath, logoOverlayPath, input.category, input.id]
+                );
+
+                // 5. Append new gallery images
+                const galleryFiles = input.gallery
+                    ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
+                    : [];
+
+                if (galleryFiles.length > 0) {
+                    await Promise.all(galleryFiles.map(async (file) => {
+                        if (file.size === 0) return;
+                        const galleryPath = await saveAsWebP(file, "uploads/projects");
+                        await pool.execute("INSERT INTO project_images (project_id, image_path) VALUES (?, ?)", [input.id, galleryPath]);
+                    }));
+                }
+
+                return { success: true };
+            } catch (error: any) {
+                console.error("Error in updateProject action:", error);
+                return {
+                    success: false,
+                    error: error.message || "An unexpected error occurred while updating the project."
+                };
             }
-
-            // 4. Update core project info
-            await pool.execute(
-                "UPDATE projects SET name = ?, main_image = ?, logo_overlay = ?, category = ? WHERE id = ?",
-                [input.name, mainImagePath, logoOverlayPath, input.category, input.id]
-            );
-
-            // 5. Append new gallery images
-            const galleryFiles = input.gallery
-                ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
-                : [];
-
-            if (galleryFiles.length > 0) {
-                await Promise.all(galleryFiles.map(async (file) => {
-                    if (file.size === 0) return;
-                    const galleryPath = await saveAsWebP(file, "uploads/projects");
-                    await pool.execute("INSERT INTO project_images (project_id, image_path) VALUES (?, ?)", [input.id, galleryPath]);
-                }));
-            }
-
-            return { success: true };
         },
     }),
 
