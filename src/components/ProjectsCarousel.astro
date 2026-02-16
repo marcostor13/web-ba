@@ -1,39 +1,17 @@
 ---
-const originalProjects = [
-  {
-    name: "Mielke",
-    image: "/home/Copy of IMG_9970 10 (2).webp",
-    logo: "/home/Logo_mielke..webp",
-    href: "/projects/mielke"
-  },
-  {
-    name: "McClatchy",
-    image: "/home/Image_Project (1).webp",
-    logo: "/home/Log_McClatchy.webp",
-    href: "/projects/mcclatchy"
-  },
-  {
-    name: "Luxury Kitchen",
-    image: "/home/Image_Project.webp",
-    logo: "/home/Log_McClatchy.webp",
-    href: "/projects/luxury-kitchen"
-  },
-  {
-    name: "Brookhaven Bath",
-    image: "/home/Copy of IMG_9970 10 (2).webp",
-    logo: "/home/Logo_mielke..webp",
-    href: "/projects/brookhaven"
-  },
-  {
-    name: "Modern Reno",
-    image: "/home/Image_Project (1).webp",
-    logo: "/home/Log_McClatchy.webp",
-    href: "/projects/modern-reno"
-  }
-];
+import pool from '../lib/db';
+
+const [rows] = await pool.execute("SELECT * FROM projects ORDER BY created_at ASC, id ASC LIMIT 5");
+const dbProjects = (rows as any[]).map(p => ({
+  name: p.name,
+  image: p.main_image,
+  logo: p.logo_overlay,
+  href: `/projects/${p.category.toLowerCase()}/${p.id}`
+}));
 
 // Double/Triple for infinite loop
-const projects = [...originalProjects, ...originalProjects, ...originalProjects];
+const projects = [...dbProjects, ...dbProjects, ...dbProjects];
+const originalCount = dbProjects.length;
 ---
 
 <section class="bg-beige-light px-6 md:px-[54px] py-[110px] flex flex-col gap-12 overflow-hidden">
@@ -83,7 +61,7 @@ const projects = [...originalProjects, ...originalProjects, ...originalProjects]
   </div>
 </section>
 
-<script>
+<script define:vars={{ originalCount }}>
   const container = document.getElementById('carousel-container');
   let isHovered = false;
 
@@ -93,7 +71,7 @@ const projects = [...originalProjects, ...originalProjects, ...originalProjects]
     const cards = container.querySelectorAll('.project-card');
     if (cards.length === 0) return;
 
-    const originalCount = 5;
+
     const cardWidthWithGap = cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
 
     // Start in the middle set

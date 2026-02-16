@@ -123,6 +123,9 @@ const menuItems = [
         // Don't intercept logout or simple get forms
         if (form.action.includes('logout') || form.method === 'get') return;
         
+        // If the submit event was already prevented (e.g. by a confirm dialog in onsubmit), stop here
+        if (e.defaultPrevented) return;
+        
         e.preventDefault();
         
         // Show loader
@@ -164,27 +167,48 @@ const menuItems = [
             throw new Error(`Server responded with ${response.status}`);
           }
 
-          const result = await response.json();
-          console.log("Action Result:", result);
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const result = await response.json();
+            console.log("Action Result:", result);
 
-          // Check if Astro Action failed (wrapper error)
-          if (result.error) {
-             throw new Error(result.error.message || "Unknown Action Error");
-          }
+            // Check if Astro Action failed (wrapper error)
+            if (result.error) {
+              throw new Error(result.error.message || "Unknown Action Error");
+            }
 
-          // Check application-level error (my return { success: false, error: ... })
-          const data = result.data;
-          if (data && data.success === false) {
-             throw new Error(data.error || "Operation failed");
-          }
+            // Check application-level error (my return { success: false, error: ... })
+            const data = result.data;
+            if (data && data.success === false) {
+              throw new Error(data.error || "Operation failed");
+            }
 
-          // Success! Redirect based on context
-          if (data && data.success) {
-             const path = window.location.pathname;
-             if (path.includes('/projects')) window.location.href = '/admin/projects';
-             else if (path.includes('/cabinets')) window.location.href = '/admin/cabinets';
-             else if (path.includes('/blog')) window.location.href = '/admin/blog';
-             else window.location.reload(); // Fallback
+            // Success! Redirect based on context
+            if (data && data.success) {
+              const path = window.location.pathname;
+              if (path.includes('/projects')) window.location.href = '/admin/projects';
+              else if (path.includes('/cabinets')) window.location.href = '/admin/cabinets';
+              else if (path.includes('/blog')) window.location.href = '/admin/blog';
+              else window.location.reload(); // Fallback
+            }
+          } else {
+            // It's probably HTML (a successful redirect page or an error page)
+            console.log("Response is not JSON, treating as success if OK");
+            if (response.ok) {
+              // If it's a redirect that fetch followed, we might be at the new page
+              if (response.redirected) {
+                window.location.href = response.url;
+              } else {
+                // Just reload or go to the relevant list
+                const path = window.location.pathname;
+                if (path.includes('/projects')) window.location.href = '/admin/projects';
+                else if (path.includes('/cabinets')) window.location.href = '/admin/cabinets';
+                else if (path.includes('/blog')) window.location.href = '/admin/blog';
+                else window.location.reload();
+              }
+            } else {
+              throw new Error("Server returned non-JSON error response.");
+            }
           }
 
         } catch (err: any) {
