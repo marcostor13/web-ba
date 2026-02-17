@@ -183,7 +183,7 @@ export const server = {
             category: z.string().default("Kitchen"),
             mainImage: z.any(), // File
             logoOverlay: z.any().optional(), // File
-            gallery: z.any().optional(), // File | File[]
+            gallery: z.union([z.any(), z.array(z.any())]).optional(), // File | File[]
         }),
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
@@ -214,10 +214,15 @@ export const server = {
                 const projectId = (result as any).insertId;
                 console.log(`[${requestId}] Project inserted with ID: ${projectId}`);
 
-                // 4. Save Gallery Images (SEQUENTIAL to avoid resource limits in Netlify)
-                const galleryFiles = input.gallery
-                    ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
-                    : [];
+                // 4. Save Gallery Images (SEQUENTIAL to avoid resource limits)
+                let galleryFiles: File[] = [];
+                if (input.gallery) {
+                    if (Array.isArray(input.gallery)) {
+                        galleryFiles = input.gallery;
+                    } else {
+                        galleryFiles = [input.gallery];
+                    }
+                }
 
                 if (galleryFiles.length > 0) {
                     console.log(`[${requestId}] Processing ${galleryFiles.length} gallery images sequentially...`);
@@ -289,10 +294,13 @@ export const server = {
             category: z.string(),
             mainImage: z.any().optional(),
             logoOverlay: z.any().optional(),
-            gallery: z.any().optional(),
+            gallery: z.union([z.any(), z.array(z.any())]).optional(),
         }),
         handler: async (input, context) => {
             if (!context.locals.user) return { success: false, error: "Unauthorized" };
+
+            console.log("updateProject input.gallery type:", typeof input.gallery);
+            console.log("updateProject input.gallery isArray:", Array.isArray(input.gallery));
 
             try {
                 // 1. Get current project state
@@ -328,9 +336,14 @@ export const server = {
                 );
 
                 // 5. Append new gallery images (SEQUENTIAL to avoid resource limits)
-                const galleryFiles = input.gallery
-                    ? (Array.isArray(input.gallery) ? input.gallery : [input.gallery]) as File[]
-                    : [];
+                let galleryFiles: File[] = [];
+                if (input.gallery) {
+                    if (Array.isArray(input.gallery)) {
+                        galleryFiles = input.gallery;
+                    } else {
+                        galleryFiles = [input.gallery];
+                    }
+                }
 
                 if (galleryFiles.length > 0) {
                     console.log(`[${input.id}] Processing ${galleryFiles.length} new gallery images sequentially...`);

@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import Footer from '../components/Footer.astro';
+import ContactModal from '../components/ContactModal.astro';
 ---
 
 <!doctype html>
@@ -19,6 +20,7 @@ import Footer from '../components/Footer.astro';
 	<body class="bg-beige-light">
 		<slot />
     <Footer />
+    <ContactModal />
 
     <script>
       const observerOptions = {
