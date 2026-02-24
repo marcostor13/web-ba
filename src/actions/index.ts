@@ -4,7 +4,7 @@ import { lucia } from "../lib/auth";
 import pool from "../lib/db";
 import { generateIdFromEntropySize } from "lucia";
 import { hash, compare } from "bcryptjs";
-import { saveAsWebP, deleteFromS3 } from "../lib/images";
+import { saveAsWebP, deleteLocalFile } from "../lib/images";
 
 export const server = {
     // ... existing auth actions (register, login, logout)
@@ -104,7 +104,7 @@ export const server = {
                 const [rows] = await pool.execute("SELECT image FROM cabinets WHERE id = ?", [input.id]);
                 const oldCabinet = (rows as any[])[0];
                 if (oldCabinet && oldCabinet.image) {
-                    await deleteFromS3(oldCabinet.image);
+                    await deleteLocalFile(oldCabinet.image);
                 }
             }
 
@@ -141,7 +141,7 @@ export const server = {
             const cabinet = (rows as any[])[0];
 
             if (cabinet && cabinet.image) {
-                await deleteFromS3(cabinet.image);
+                await deleteLocalFile(cabinet.image);
             }
 
             await pool.execute("DELETE FROM cabinets WHERE id = ?", [input.id]);
@@ -273,7 +273,7 @@ export const server = {
                     (galleryRows as any[]).forEach(row => imagesToDelete.push(row.image_path));
 
                     for (const imgPath of imagesToDelete) {
-                        await deleteFromS3(imgPath);
+                        await deleteLocalFile(imgPath);
                     }
                 }
 
@@ -316,7 +316,7 @@ export const server = {
                     mainImagePath = await saveAsWebP(input.mainImage as File, "uploads/projects");
 
                     // Delete old
-                    await deleteFromS3(project.main_image);
+                    await deleteLocalFile(project.main_image);
                 }
 
                 // 3. Handle logo update
@@ -325,7 +325,7 @@ export const server = {
 
                     // Delete old
                     if (project.logo_overlay) {
-                        await deleteFromS3(project.logo_overlay);
+                        await deleteLocalFile(project.logo_overlay);
                     }
                 }
 
@@ -365,6 +365,64 @@ export const server = {
                     success: false,
                     error: error.message || "An unexpected error occurred while updating the project."
                 };
+            }
+        },
+    }),
+
+    deleteProjectImage: defineAction({
+        accept: "form",
+        input: z.object({
+            imageId: z.number(),
+        }),
+        handler: async (input, context) => {
+            if (!context.locals.user) return { success: false, error: "Unauthorized" };
+
+            try {
+                // 1. Get image path
+                const [rows] = await pool.execute("SELECT image_path FROM project_images WHERE id = ?", [input.imageId]);
+                const image = (rows as any[])[0];
+
+                if (image && image.image_path) {
+                    // 2. Delete local file
+                    await deleteLocalFile(image.image_path);
+                }
+
+                // 3. Delete from DB
+                await pool.execute("DELETE FROM project_images WHERE id = ?", [input.imageId]);
+
+                return { success: true };
+            } catch (error: any) {
+                console.error("Error in deleteProjectImage action:", error);
+                return { success: false, error: "Failed to delete image" };
+            }
+        },
+    }),
+
+    deleteProjectLogoOverlay: defineAction({
+        accept: "form",
+        input: z.object({
+            projectId: z.string(),
+        }),
+        handler: async (input, context) => {
+            if (!context.locals.user) return { success: false, error: "Unauthorized" };
+
+            try {
+                // 1. Get current logo path
+                const [rows] = await pool.execute("SELECT logo_overlay FROM projects WHERE id = ?", [input.projectId]);
+                const project = (rows as any[])[0];
+
+                if (project && project.logo_overlay) {
+                    // 2. Delete local file
+                    await deleteLocalFile(project.logo_overlay);
+
+                    // 3. Update DB
+                    await pool.execute("UPDATE projects SET logo_overlay = NULL WHERE id = ?", [input.projectId]);
+                }
+
+                return { success: true };
+            } catch (error: any) {
+                console.error("Error in deleteProjectLogoOverlay action:", error);
+                return { success: false, error: "Failed to delete logo overlay" };
             }
         },
     }),
@@ -474,7 +532,7 @@ export const server = {
                     const [rows] = await connection.execute("SELECT main_image FROM blog_posts WHERE id = ?", [input.id]);
                     const oldPost = (rows as any[])[0];
                     if (oldPost && oldPost.main_image) {
-                        await deleteFromS3(oldPost.main_image);
+                        await deleteLocalFile(oldPost.main_image);
                     }
 
                     await connection.execute("UPDATE blog_posts SET title = ?, short_description = ?, main_image = ? WHERE id = ?",

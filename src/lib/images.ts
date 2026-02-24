@@ -1,168 +1,102 @@
 import sharp from 'sharp';
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
+import { writeFile, unlink, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const getEnv = (key: string, defaultValue: string = ''): string => {
-    // Check both import.meta.env and process.env for SSR/Netlify compatibility
-    const value = (import.meta as any).env?.[key] || (process.env as any)[key] || defaultValue;
-    return value;
+// Resolve the project root so we can write files to public/uploads/
+// In Astro SSR (Node standalone), import.meta.url points inside dist/server/
+// We go up until we find the project root (where package.json lives).
+const getPublicDir = (): string => {
+    // When running after build, cwd() is where you start the server (project root)
+    // public/ must be served as static files by the Node server (configured in entry)
+    return path.join(process.cwd(), 'public');
 };
 
-console.log("S3 Runtime Check (Robust):", {
-    hasBucket: !!getEnv('AWS_S3_BUCKET_NAME'),
-    region: getEnv('AWS_S3_REGION', 'us-east-1'),
-    hasAccessKey: !!getEnv('AWS_ACCESS_KEY_ID_BA'),
-    hasSecretKey: !!getEnv('AWS_SECRET_ACCESS_KEY_BA'),
-    endpoint: getEnv('AWS_S3_ENDPOINT', 'none'),
-    forcePathStyle: getEnv('AWS_S3_FORCE_PATH_STYLE') === "true"
-});
-
-const s3Client = new S3Client({
-    region: getEnv('AWS_S3_REGION', 'us-east-1'),
-    credentials: {
-        accessKeyId: getEnv('AWS_ACCESS_KEY_ID_BA'),
-        secretAccessKey: getEnv('AWS_SECRET_ACCESS_KEY_BA'),
-    },
-    endpoint: getEnv('AWS_S3_ENDPOINT') || undefined,
-    forcePathStyle: getEnv('AWS_S3_FORCE_PATH_STYLE') === "true",
-});
-
 /**
- * Converts an uploaded file to WebP and uploads it to AWS S3.
+ * Converts an uploaded file to WebP and saves it to the local filesystem.
+ * Files are stored in public/uploads/<uploadDir>/
  * @param file The uploaded File object
- * @param uploadDir The directory path within the bucket
- * @returns The full S3 URL of the saved WebP image
+ * @param uploadDir The subdirectory within public/uploads/
+ * @returns The public URL path of the saved WebP image (e.g. /uploads/projects/...)
  */
 export async function saveAsWebP(file: File, uploadDir: string): Promise<string> {
     const originalBuffer = Buffer.from(await file.arrayBuffer());
     const timestamp = Date.now();
     const originalExtension = file.name.split('.').pop() || 'bin';
-    const cleanBaseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const cleanBaseName = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase();
 
     console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
 
     let processedBuffer = originalBuffer;
-    let finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.webp`;
-    let contentType = "image/webp";
+    let fileName = `${timestamp}-${cleanBaseName}.webp`;
+    let isWebP = true;
 
     try {
-        // Only attempt sharp processing for images
         if (file.type.startsWith('image/')) {
-            console.log("Attempting image optimization with sharp...");
+            console.log('Attempting image optimization with sharp...');
             processedBuffer = await sharp(originalBuffer)
                 .webp({ quality: 80 })
                 .toBuffer();
-            console.log("Image optimized successfully to WebP");
+            console.log('Image optimized successfully to WebP');
         } else {
-            console.log("Not an image or unsupported type, skipping optimization");
-            finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.${originalExtension}`;
-            contentType = file.type || "application/octet-stream";
+            console.log('Not an image or unsupported type, skipping optimization');
+            fileName = `${timestamp}-${cleanBaseName}.${originalExtension}`;
+            isWebP = false;
         }
     } catch (sharpError) {
-        console.warn("Sharp optimization failed, falling back to original file:", sharpError);
-        // Fallback: Use original extension and original buffer
-        finalKey = `${uploadDir}/${timestamp}-${cleanBaseName}.${originalExtension}`;
-        contentType = file.type || "application/octet-stream";
+        console.warn('Sharp optimization failed, falling back to original file:', sharpError);
+        fileName = `${timestamp}-${cleanBaseName}.${originalExtension}`;
+        isWebP = false;
         processedBuffer = originalBuffer;
     }
 
-    const key = finalKey.replace(/\/+/g, '/').replace(/^\//, '');
-    const bucket = getEnv('AWS_S3_BUCKET_NAME');
+    // Build the target directory and ensure it exists
+    const publicDir = getPublicDir();
+    const targetDir = path.join(publicDir, 'uploads', uploadDir);
 
-    console.log(`Starting upload to bundle: ${bucket}, key: ${key} (Size: ${processedBuffer.length} bytes)`);
-
-    const upload = new Upload({
-        client: s3Client,
-        params: {
-            Bucket: bucket,
-            Key: key,
-            Body: processedBuffer,
-            ContentType: contentType,
-        },
-    });
-
-    try {
-        await upload.done();
-        console.log(`Upload successful for: ${key}`);
-    } catch (error: any) {
-        console.error("S3 Upload Error:", error);
-        throw error;
+    if (!existsSync(targetDir)) {
+        await mkdir(targetDir, { recursive: true });
     }
 
-    const region = import.meta.env.AWS_S3_REGION || "us-east-1";
-    const endpoint = import.meta.env.AWS_S3_ENDPOINT;
+    const targetPath = path.join(targetDir, fileName);
+    await writeFile(targetPath, processedBuffer);
+    console.log(`File saved to: ${targetPath}`);
 
-    // Construct URL based on configuration
-    if (endpoint) {
-        // Custom endpoint (e.g., DigitalOcean, R2, or S3-compatible)
-        const baseUrl = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-        const forcePathStyle = import.meta.env.AWS_S3_FORCE_PATH_STYLE === "true" || import.meta.env.AWS_S3_FORCE_PATH_STYLE === true;
-
-        if (forcePathStyle) {
-            return `${baseUrl}/${bucket}/${key}`;
-        }
-        return `${baseUrl.replace('://', `://${bucket}.`)}/${key}`;
-    }
-
-    // Standard AWS S3 URL
-    if (region === "us-east-1") {
-        return `https://${bucket}.s3.amazonaws.com/${key}`;
-    }
-    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+    // Return the public URL path (relative to the web root)
+    const publicPath = `/uploads/${uploadDir}/${fileName}`.replace(/\/+/g, '/');
+    return publicPath;
 }
 
 /**
- * Deletes an object from AWS S3 based on its URL.
- * @param url The full S3 URL of the object to delete
+ * Deletes a locally stored file based on its public URL path.
+ * @param urlPath The public path of the file (e.g. /uploads/projects/...)
  */
-export async function deleteFromS3(url: string | null): Promise<void> {
-    if (!url) return;
+export async function deleteLocalFile(urlPath: string | null): Promise<void> {
+    if (!urlPath) return;
+
+    // Skip if it looks like a remote URL (legacy S3 images)
+    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) {
+        console.warn(`Skipping delete for remote URL (legacy S3 image): ${urlPath}`);
+        return;
+    }
 
     try {
-        const bucket = getEnv('AWS_S3_BUCKET_NAME');
-        if (!bucket) return;
+        const publicDir = getPublicDir();
+        // urlPath is like /uploads/projects/123-foo.webp
+        const relativePath = urlPath.startsWith('/') ? urlPath.slice(1) : urlPath;
+        const fullPath = path.join(publicDir, relativePath);
 
-        // Extract key from URL
-        let key = "";
-        const endpoint = getEnv('AWS_S3_ENDPOINT');
-
-        if (url.includes(".amazonaws.com/")) {
-            // Standard S3 URL
-            key = url.split(".amazonaws.com/")[1];
-        } else if (endpoint) {
-            // Custom endpoint
-            const endpointUrl = endpoint.replace(/^https?:\/\//, "");
-            key = url.split(endpointUrl)[1].replace(/^\/?[^\/]+\//, ""); // Skip bucket Part if path-style
-        } else {
-            // Fallback: try to find the bucket name and get everything after it
-            const parts = url.split(`/${bucket}/`);
-            if (parts.length > 1) {
-                key = parts[1];
-            } else {
-                // Last resort: just the path after the domain
-                const urlObj = new URL(url);
-                key = urlObj.pathname.replace(/^\//, "");
-                if (key.startsWith(`${bucket}/`)) {
-                    key = key.replace(`${bucket}/`, "");
-                }
-            }
-        }
-
-        if (!key) {
-            console.warn(`Could not extract S3 key from URL: ${url}`);
-            return;
-        }
-
-        await s3Client.send(new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key,
-        }));
-
-        console.log(`Successfully deleted old image: ${key}`);
-
+        await unlink(fullPath);
+        console.log(`Successfully deleted local file: ${fullPath}`);
     } catch (e: any) {
-        // Log as warning only, do not throw. 
-        // We don't want to break the update process just because we couldn't delete an old file.
-        console.warn(`Warning: Failed to delete image from S3 (${url}). Reason: ${e.message}`);
+        if (e.code === 'ENOENT') {
+            console.warn(`File not found for deletion (already removed?): ${urlPath}`);
+        } else {
+            console.warn(`Warning: Failed to delete local file (${urlPath}). Reason: ${e.message}`);
+        }
     }
 }
