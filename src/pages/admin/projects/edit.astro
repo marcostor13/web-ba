@@ -1,0 +1,296 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Edit Project">
+  <div class="flex flex-col gap-10 max-w-4xl relative">
+    
+    <div id="loader" class="absolute inset-0 z-50 flex items-start justify-center pt-20 bg-beige-light/50">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+    </div>
+
+    <div id="form-content" class="hidden flex-col gap-10">
+      <header class="flex flex-col gap-2">
+        <a href="/admin/projects" class="text-[10px] uppercase tracking-[0.3em] text-gold hover:text-black-soft transition-colors mb-4 flex items-center gap-2">
+          <svg class="w-3 h-3 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+          Back to projects
+        </a>
+        <h1 class="text-[12px] uppercase tracking-[0.4em] text-black-soft/40 font-medium">Edit Project</h1>
+        <h2 id="page-title" class="text-4xl md:text-[50px] font-light text-black-soft m-0">...</h2>
+      </header>
+
+      <form 
+        id="edit-form"
+        class="bg-white p-8 md:p-12 shadow-xl border border-black-soft/5 flex flex-col gap-10"
+      >
+        <input type="hidden" name="id" id="project-id-input" value="" />
+
+        <div id="error-msg" class="hidden bg-red-50 text-red-500 p-4 text-sm border-l-4 border-red-500"></div>
+
+        <!-- Basic Info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="flex flex-col gap-3">
+            <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Project Name</label>
+            <input 
+              type="text" 
+              name="name" 
+              id="input-name"
+              required 
+              class="bg-beige-light/50 border-0 p-4 text-sm focus:ring-1 focus:ring-gold outline-none" 
+            />
+          </div>
+          <div class="flex flex-col gap-3">
+            <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Category</label>
+            <select name="category" id="input-category" class="bg-beige-light/50 border-0 p-4 text-sm focus:ring-1 focus:ring-gold outline-none">
+              <option value="Kitchen">Kitchen</option>
+              <option value="Bathroom">Bathroom</option>
+              <option value="Basement">Basement</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Main Images -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="flex flex-col gap-3">
+            <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Main Image (Background)</label>
+            <div class="mb-2">
+              <img id="main-image-preview" src="" class="w-32 h-20 object-cover rounded-sm border border-black-soft/10 hidden" />
+            </div>
+            <input 
+              type="file" 
+              name="mainImage" 
+              accept="image/*" 
+              class="text-sm text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-gold file:text-white hover:file:bg-black-soft file:transition-colors" 
+            />
+          </div>
+          <div class="flex flex-col gap-3">
+            <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Logo Overlay (Center Image)</label>
+            <div id="logo-preview-container" class="hidden mb-2 bg-black-soft/5 p-2 items-start gap-4 inline-flex w-fit">
+               <img id="logo-overlay-preview" src="" class="h-10 object-contain" />
+               <button 
+                 type="button"
+                 id="delete-logo-btn"
+                 class="text-red-500 hover:text-red-700 transition-colors p-1"
+                 title="Delete Logo"
+               >
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+               </button>
+            </div>
+            <input 
+              type="file" 
+              name="logoOverlay" 
+              accept="image/*" 
+              class="text-sm text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-gold file:text-white hover:file:bg-black-soft file:transition-colors" 
+            />
+          </div>
+        </div>
+
+        <!-- Gallery -->
+        <div class="flex flex-col gap-6">
+          <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Gallery Images</label>
+          
+          <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="flex flex-col gap-3 mt-4">
+              <label class="text-[10px] uppercase tracking-[0.2em] font-bold text-black-soft">Add More Gallery Images</label>
+              <input 
+                type="file" 
+                name="gallery[]" 
+                accept="image/*" 
+                multiple
+                class="text-sm text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-black-soft file:text-white hover:file:bg-gold file:transition-colors" 
+              />
+          </div>
+        </div>
+
+        <div class="pt-6 border-t border-black-soft/5">
+          <button 
+            type="submit" 
+            id="submit-btn"
+            class="bg-gold text-white px-12 py-5 uppercase tracking-[0.3em] text-[11px] font-bold hover:bg-black-soft transition-all duration-500 shadow-lg hover:shadow-gold/20"
+          >
+            Update Project
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline>
+    let projectId = null;
+
+    async function loadProject() {
+      const params = new URLSearchParams(window.location.search);
+      projectId = params.get('id');
+
+      if (!projectId) {
+        window.location.href = '/admin/projects';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/projects.php?action=get&id=${projectId}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const project = json.data;
+          const images = json.images || [];
+
+          document.getElementById('page-title').innerText = project.name;
+          document.title = `Edit ${project.name} | Admin`;
+
+          document.getElementById('project-id-input').value = project.id;
+          document.getElementById('input-name').value = project.name;
+          document.getElementById('input-category').value = project.category || 'Kitchen';
+
+          if (project.main_image) {
+            const preview = document.getElementById('main-image-preview');
+            preview.src = project.main_image;
+            preview.classList.remove('hidden');
+          }
+
+          if (project.logo_overlay) {
+             const logoC = document.getElementById('logo-preview-container');
+             document.getElementById('logo-overlay-preview').src = project.logo_overlay;
+             logoC.classList.remove('hidden');
+             logoC.classList.add('flex');
+          }
+
+          renderGallery(images);
+
+          document.getElementById('loader').classList.add('hidden');
+          document.getElementById('form-content').classList.remove('hidden');
+          document.getElementById('form-content').classList.add('flex');
+        } else {
+          window.location.href = '/admin/projects';
+        }
+      } catch (err) {
+        console.error(err);
+        window.location.href = '/admin/projects';
+      }
+    }
+
+    function renderGallery(images) {
+      const grid = document.getElementById('gallery-grid');
+      grid.innerHTML = images.map(img => `
+         <div class="relative group aspect-square bg-white shadow-sm border border-black-soft/5 overflow-hidden">
+            <img src="${img.image_path}" class="w-full h-full object-cover" />
+            <button 
+              type="button"
+              class="absolute top-2 right-2 bg-white/90 hover:bg-white text-red-500 p-2 rounded-sm opacity-0 group-hover:opacity-100 transition-all shadow-md"
+              onclick="deleteGalleryImage(${img.id}, this)"
+              title="Delete image"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+      `).join('');
+    }
+
+    async function deleteGalleryImage(imgId, btn) {
+      if (!confirm("Are you sure you want to delete this gallery image?")) return;
+      
+      try {
+        const res = await fetch('/api/projects.php?action=deleteImage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageId: imgId })
+        });
+        const json = await res.json();
+        if (json.success) {
+          btn.closest('div').remove();
+        } else {
+          if (json.error === "Unauthorized") window.location.href = '/admin/login';
+          else alert('Failed to delete: ' + json.error);
+        }
+      } catch (e) {
+        alert('Action failed.');
+      }
+    }
+
+    document.getElementById('delete-logo-btn').addEventListener('click', async () => {
+       if (!confirm("Are you sure you want to delete the logo overlay?")) return;
+       try {
+         const res = await fetch('/api/projects.php?action=deleteLogoOverlay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId })
+         });
+         const json = await res.json();
+         if (json.success) {
+           const logoC = document.getElementById('logo-preview-container');
+           logoC.classList.remove('flex');
+           logoC.classList.add('hidden');
+         } else {
+           if (json.error === "Unauthorized") window.location.href = '/admin/login';
+           else alert("Failed: " + json.error);
+         }
+       } catch (e) { alert("Failed"); }
+    });
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errorMsg = document.getElementById('error-msg');
+      
+      btn.disabled = true;
+      btn.innerText = 'PREPARING...';
+      errorMsg.classList.add('hidden');
+
+      const formData = new FormData(e.target);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/projects.php?action=update', true);
+
+      xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              btn.innerText = 'UPLOADING... ' + percent + '%';
+          }
+      });
+
+      xhr.onload = function() {
+          btn.innerText = 'PROCESSING...';
+          if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                  const json = JSON.parse(xhr.responseText);
+                  if (json.success) {
+                      window.location.href = '/admin/projects';
+                  } else {
+                      if (json.error === "Unauthorized") window.location.href = '/admin/login';
+                      else {
+                          errorMsg.innerText = json.error || 'Failed to update project';
+                          errorMsg.classList.remove('hidden');
+                          btn.disabled = false;
+                          btn.innerText = 'Update Project';
+                      }
+                  }
+              } catch (e) {
+                   errorMsg.innerText = 'Invalid server response.';
+                   errorMsg.classList.remove('hidden');
+                   btn.disabled = false;
+                   btn.innerText = 'Update Project';
+              }
+          } else {
+              errorMsg.innerText = 'Server error. Please try again.';
+              errorMsg.classList.remove('hidden');
+              btn.disabled = false;
+              btn.innerText = 'Update Project';
+          }
+      };
+
+      xhr.onerror = function() {
+          errorMsg.innerText = 'Network error. Please try again.';
+          errorMsg.classList.remove('hidden');
+          btn.disabled = false;
+          btn.innerText = 'Update Project';
+      };
+
+      xhr.send(formData);
+    });
+
+    window.addEventListener('load', loadProject);
+  </script>
+</AdminLayout>

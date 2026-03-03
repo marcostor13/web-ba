@@ -1,0 +1,117 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+---
+
+<Layout title="Project Detail | BA Kitchen & Bath Remodeling">
+  <Header />
+  <main>
+    <div id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+    </div>
+
+    <div id="project-content" class="hidden">
+      <!-- Section 1: Hero Image -->
+      <section 
+        id="hero-section"
+        class="relative h-[100dvh] bg-cover bg-center" 
+        style="background-image: url('');"
+      >
+        <div class="absolute inset-0 bg-black/10"></div>
+      </section>
+
+      <!-- Section 2: Title and Gallery -->
+      <section class="bg-beige-light px-6 md:px-[54px] lg:px-[140px] py-[110px]">
+        <div class="max-w-[1000px] mx-auto flex flex-col items-center gap-16">
+          
+          <!-- Project Title -->
+          <h2 id="project-name" class="text-3xl md:text-[50px] uppercase tracking-tight font-light text-black-soft text-center reveal reveal-up">
+            
+          </h2>
+
+          <!-- Main Image (Featured again in gallery) -->
+          <div class="w-full relative aspect-[4/3] md:aspect-[16/9] overflow-hidden shadow-sm reveal reveal-up delay-100">
+            <img 
+              id="main-image-img"
+              src="" 
+              alt="" 
+              class="absolute inset-0 w-full h-full object-cover"
+            />
+          </div>
+
+          <!-- Gallery Grid (2 Columns) -->
+          <div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
+            <!-- Gallery items -->
+          </div>
+
+          <!-- Back Link -->
+          <div class="mt-16 reveal reveal-up">
+            <a 
+              href="/kitchen" 
+              class="text-[11px] uppercase tracking-[0.3em] font-medium text-black-soft/40 hover:text-gold transition-colors border-b border-black-soft/10 hover:border-gold pb-1"
+            >
+              Back to Kitchens
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script is:inline>
+      async function init() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        
+        if (!id) {
+          window.location.href = '/kitchen';
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/projects.php?action=get&id=${id}`);
+          const json = await res.json();
+          
+          if (!json.success || !json.data) {
+            window.location.href = '/kitchen';
+            return;
+          }
+
+          const project = json.data;
+          
+          document.title = `${project.name} | Projects | BA Kitchen & Bath Remodeling`;
+
+          document.getElementById('hero-section').style.backgroundImage = `url('${project.main_image}')`;
+          document.getElementById('project-name').innerText = project.name;
+          document.getElementById('main-image-img').src = project.main_image;
+          document.getElementById('main-image-img').alt = `${project.name} main view`;
+
+          const galleryHtml = (json.images || []).map((img, index) => `
+            <div class="reveal reveal-up mb-8 md:mb-0" style="animation-delay: ${index * 100}ms">
+              <div class="relative w-full aspect-[3/4] overflow-hidden shadow-sm safari-fix-overflow">
+                <img 
+                  src="${img.image_path}" 
+                  alt="${project.name} gallery image ${index + 1}" 
+                  class="absolute inset-0 w-full h-full object-cover hover:scale-[1.05] transition-transform duration-700 cursor-zoom-in transform-gpu will-change-transform"
+                />
+              </div>
+            </div>
+          `).join('');
+          document.getElementById('gallery-grid').innerHTML = galleryHtml;
+
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('project-content').classList.remove('hidden');
+
+          setTimeout(() => {
+            document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+          }, 100);
+
+        } catch (e) {
+          console.error(e);
+          window.location.href = '/kitchen';
+        }
+      }
+
+      window.addEventListener('load', init);
+    </script>
+  </main>
+</Layout>

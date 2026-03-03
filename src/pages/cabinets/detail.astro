@@ -1,0 +1,195 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+---
+
+<Layout title="Cabinet Detail | BA Kitchen & Bath Remodeling">
+  <Header />
+  <main>
+    <div id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+    </div>
+
+    <!-- Dynamic Content Target -->
+    <div id="cabinet-content" class="hidden">
+      <!-- Hero Section -->
+      <section 
+        class="relative h-[60vh] min-h-[400px] flex items-end justify-start text-white px-6 md:px-[54px] pt-[110px] pb-10 md:pb-[80px] bg-cover bg-center" 
+        style={`background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('/cabinets/Image_Header (4).webp');`}
+      >
+        <div class="reveal reveal-up">
+          <h1 class="text-5xl md:text-[80px] leading-tight font-light text-white m-0">
+            Cabinets
+          </h1>
+        </div>
+      </section>
+
+      <!-- Product Detail Section -->
+      <section class="bg-beige-light px-6 md:px-[54px] lg:px-[140px] py-[110px]">
+        <div class="max-w-[1200px] mx-auto">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-start">
+            
+            <!-- Image Column -->
+            <div class="reveal reveal-left">
+              <div class="aspect-[1/1.5] flex items-center justify-center group overflow-hidden">
+                <img 
+                  id="cab-image"
+                  src="" 
+                  alt="" 
+                  class="w-full h-auto object-contain transform hover:scale-105 transition-transform duration-1000" 
+                />
+              </div>
+            </div>
+
+            <!-- Info Column -->
+            <div class="flex flex-col reveal reveal-right">
+              <span id="cab-brand" class="text-[12px] uppercase tracking-[0.25em] text-black-soft/40 font-bold mb-2"></span>
+              <h2 id="cab-name" class="text-4xl md:text-[50px] font-light text-black-soft mb-8 leading-tight"></h2>
+              
+              <p id="cab-desc" class="text-[16px] text-black-soft/70 font-light mb-12 leading-relaxed"></p>
+
+              <div class="mb-12">
+                <h4 id="cab-series" class="text-[14px] uppercase tracking-widest font-bold text-black-soft mb-6"></h4>
+                <ul id="cab-specs" class="space-y-4"></ul>
+              </div>
+
+              <div class="flex items-center gap-4 pt-8 border-t border-black-soft/5">
+                <span class="text-[14px] text-black-soft/60 font-light">Color:</span>
+                <div id="cab-color-box" class="w-6 h-6 rounded-sm border border-black-soft/10"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Related Products -->
+      <section class="bg-beige-light px-6 md:px-[54px] lg:px-[140px] pb-[110px]">
+        <div class="max-w-[1200px] mx-auto border-t border-black-soft/5 pt-24">
+          <h3 class="text-[14px] uppercase tracking-[0.3em] font-medium text-black-soft/40 mb-16 reveal reveal-up">Related</h3>
+          <div id="related-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-20 gap-y-32">
+            <!-- Related items -->
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA Section -->
+      <section class="relative h-screen flex items-end overflow-hidden">
+        <div 
+          class="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] hover:scale-105" 
+          style="background-image: url('/cabinets/Image_Background (5).webp');"
+        ></div>
+        <div class="absolute inset-0 bg-black/20"></div>
+        
+        <div class="relative z-10 w-full px-6 md:px-[54px] lg:px-[140px] pb-16 md:pb-24 max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between items-end gap-8">
+          <div class="reveal reveal-left">
+            <h2 class="text-3xl md:text-[42px] leading-tight font-light text-white max-w-[700px]">
+              Contact us for a quick online estimate or to schedule an in-home consult.
+            </h2>
+          </div>
+          <div class="reveal reveal-right">
+            <a 
+              href="/contact" 
+              class="text-[12px] uppercase tracking-[0.3em] font-medium text-white border-b border-white hover:text-gold hover:border-gold transition-all duration-300 pb-2 mb-2 inline-block"
+            >
+              Start now
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script is:inline>
+      async function init() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        
+        if (!id) {
+          window.location.href = '/cabinets';
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/cabinets.php?action=get&id=${id}`);
+          const json = await res.json();
+          
+          if (!json.success || !json.data) {
+            window.location.href = '/cabinets';
+            return;
+          }
+
+          const cab = json.data;
+          
+          // Set page title (if possible via JS)
+          document.title = `${cab.name} | Cabinets | BA Kitchen & Bath Remodeling`;
+
+          // Populate DOM
+          document.getElementById('cab-image').src = cab.image;
+          document.getElementById('cab-image').alt = cab.name;
+          document.getElementById('cab-brand').innerText = cab.brand;
+          document.getElementById('cab-name').innerText = cab.name;
+          document.getElementById('cab-desc').innerText = cab.description || '';
+          document.getElementById('cab-series').innerText = cab.series || '';
+          
+          const specsHtml = (cab.specifications || '')
+            .split('\n')
+            .filter(s => s.trim() !== '')
+            .map(s => `
+              <li class="flex items-start gap-3 text-[14px] text-black-soft/60 font-light">
+                <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-gold/40 flex-shrink-0"></span>
+                ${s}
+              </li>
+            `).join('');
+          document.getElementById('cab-specs').innerHTML = specsHtml;
+
+          const tag = (cab.tag || '').toLowerCase();
+          const color = tag === 'white' ? '#fff' : tag === 'brown' ? '#5D4037' : tag === 'gray' ? '#9E9E9E' : '#1A237E';
+          document.getElementById('cab-color-box').style.backgroundColor = color;
+
+          // Fetch related
+          loadRelated(id, cab.tag);
+
+          // Show content
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('cabinet-content').classList.remove('hidden');
+
+          setTimeout(() => {
+            document.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+          }, 100);
+
+        } catch (e) {
+          console.error(e);
+          window.location.href = '/cabinets';
+        }
+      }
+
+      async function loadRelated(id, tag) {
+        try {
+          const res = await fetch('/api/cabinets.php?action=list');
+          const json = await res.json();
+          if (json.success) {
+            let ALL = json.data.filter(c => c.id != id);
+            let related = ALL.filter(c => c.tag === tag).slice(0, 3);
+            if(related.length === 0) related = ALL.slice(0, 3);
+
+            const grid = document.getElementById('related-grid');
+            grid.innerHTML = related.map((item, index) => `
+              <a href="/cabinets/detail?id=${item.id}" class="flex flex-col gap-10 reveal reveal-up group revealed" style="animation-delay: ${index * 100}ms">
+                <div class="max-w-[280px] mx-auto w-full flex flex-col gap-10">
+                  <div class="aspect-[1/1.5] w-full flex items-center justify-center overflow-hidden">
+                    <img src="${item.image}" alt="${item.name}" class="w-full h-auto object-contain transform group-hover:scale-105 transition-transform duration-1000" />
+                  </div>
+                  <div class="flex flex-col gap-2 text-left whitespace-nowrap">
+                    <span class="text-[9px] tracking-[0.1em] text-black-soft/40 font-medium">${item.brand}</span>
+                    <h3 class="text-[16px] md:text-[18px] font-normal text-black-soft m-0 group-hover:text-gold transition-colors">${item.name}</h3>
+                  </div>
+                </div>
+              </a>
+            `).join('');
+          }
+        } catch(e) {}
+      }
+
+      window.addEventListener('load', init);
+    </script>
+  </main>
+</Layout>

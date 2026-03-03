@@ -1,16 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
-import pool from '../lib/db';
-
-const [rows] = await pool.execute("SELECT * FROM cabinets ORDER BY created_at DESC");
-const dbCabinets = (rows as any[]).map(c => ({
-  id: c.id,
-  brand: c.brand,
-  name: c.name,
-  color: c.tag,
-  image: c.image
-}));
 ---
 
 <Layout title="Cabinets | BA Kitchen & Bath Remodeling">
@@ -18,7 +8,7 @@ const dbCabinets = (rows as any[]).map(c => ({
   <main>
     <!-- Hero Section -->
     <section 
-      class="relative h-screen min-h-screen flex items-end justify-start text-white px-6 md:px-[54px] pt-[110px] pb-10 md:pb-[100px] bg-cover bg-center" 
+      class="relative h-[100dvh] min-h-[100dvh] flex items-end justify-start text-white px-6 md:px-[54px] pt-[110px] pb-10 md:pb-[100px] bg-cover bg-center" 
       style="background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url('/our-process/Image_Header (2).webp');"
     >
       <div class="reveal reveal-up">
@@ -42,7 +32,7 @@ const dbCabinets = (rows as any[]).map(c => ({
           
           <!-- Left: Results Counter (Absolute on Desktop) -->
           <p class="text-[12px] text-black-soft/40 font-light italic mb-6 md:mb-0 md:absolute md:left-0 md:top-8" id="results-counter">
-            Showing all results
+            Loading...
           </p>
           
           <!-- Center: Filters -->
@@ -81,6 +71,10 @@ const dbCabinets = (rows as any[]).map(c => ({
           </div>
         </div>
 
+        <div id="loader" class="flex justify-center py-10 w-full hidden">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gold"></div>
+        </div>
+
         <!-- Gallery Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-20 gap-y-32 mt-24" id="gallery-grid">
           <!-- Items will be rendered here by JS -->
@@ -93,9 +87,8 @@ const dbCabinets = (rows as any[]).map(c => ({
       </div>
     </section>
 
-    <script is:inline define:vars={{ dbCabinets }}>
-      const cabinets = dbCabinets;
-
+    <script is:inline>
+      let cabinets = [];
       let currentFilter = 'all';
       let currentSort = 'default';
       const itemsPerPage = 12;
@@ -106,6 +99,26 @@ const dbCabinets = (rows as any[]).map(c => ({
       const filterBtns = document.querySelectorAll('.filter-btn');
       const clearBtn = document.getElementById('clear-filters');
       const sortSelect = document.getElementById('sort-select');
+      const loader = document.getElementById('loader');
+
+      async function fetchCabinets() {
+        if(loader) loader.classList.remove('hidden');
+        try {
+          const res = await fetch('/api/cabinets.php?action=list');
+          const json = await res.json();
+          if (json.success && json.data) {
+            cabinets = json.data.map(c => ({
+              id: c.id,
+              brand: c.brand,
+              name: c.name,
+              color: c.tag,
+              image: c.image
+            }));
+          }
+        } catch(e) { console.error('Error fetching cabinets:', e); }
+        if(loader) loader.classList.add('hidden');
+        renderGallery();
+      }
 
       function renderGallery() {
         if (!grid) return;
@@ -133,7 +146,7 @@ const dbCabinets = (rows as any[]).map(c => ({
 
         // 4. Render Items
         grid.innerHTML = filtered.map((item, index) => `
-          <a href="/cabinets/${item.id}" class="flex flex-col gap-10 reveal reveal-up group" style="animation-delay: ${index * 100}ms">
+          <a href="/cabinets/detail?id=${item.id}" class="flex flex-col gap-10 reveal reveal-up group" style="animation-delay: ${index * 100}ms">
             <div class="max-w-[280px] mx-auto w-full flex flex-col gap-10">
               <div class="w-full aspect-[1/1.5] flex items-center justify-center overflow-hidden">
                 <img 
@@ -149,6 +162,11 @@ const dbCabinets = (rows as any[]).map(c => ({
             </div>
           </a>
         `).join('');
+
+        // trigger reveal
+        setTimeout(() => {
+          grid.querySelectorAll('.reveal').forEach(el => el.classList.add('revealed'));
+        }, 50);
       }
 
       // Event Listeners
@@ -156,13 +174,10 @@ const dbCabinets = (rows as any[]).map(c => ({
         btn.addEventListener('click', () => {
           const color = btn.getAttribute('data-color');
           
-          // Toggle active class
           filterBtns.forEach(b => b.classList.remove('text-gold', 'border-gold'));
           btn.classList.add('text-gold', 'border-gold');
           
-          if (color) {
-            currentFilter = color;
-          }
+          if (color) currentFilter = color;
           clearBtn?.classList.remove('opacity-0', 'pointer-events-none');
           renderGallery();
         });
@@ -180,8 +195,8 @@ const dbCabinets = (rows as any[]).map(c => ({
         renderGallery();
       });
 
-      // Initial render
-      renderGallery();
+      // Fetch on load
+      window.addEventListener('load', fetchCabinets);
     </script>
   </main>
 </Layout>

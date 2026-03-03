@@ -1,37 +1,37 @@
 ---
 import '../styles/global.css';
-import { actions } from 'astro:actions';
 
 interface Props {
 	title: string;
 }
 
 const { title } = Astro.props;
-const user = Astro.locals.user;
 
 const menuItems = [
   { name: 'Dashboard', href: '/admin', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { name: 'Colors Cabinets', href: '/admin/cabinets', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
   { name: 'Projects', href: '/admin/projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+  { name: 'Blog', href: '/admin/blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2zM7 8h5m-5 4h10m-10 4h10' },
 ];
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" href="/favicon.png" />
+		<link rel="apple-touch-icon" href="/favicon.png" />
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 		<title>{title} | Admin BA</title>
 	</head>
-	<body class="bg-beige-light font-urbanist text-black-soft min-h-screen flex">
+	<body class="bg-beige-light font-urbanist text-black-soft min-h-screen flex opacity-0 transition-opacity duration-300" id="admin-body">
     
-    {user && (
       <!-- Sidebar -->
-      <aside class="w-64 bg-black-soft text-white shrink-0 hidden md:flex flex-col">
+      <aside id="admin-sidebar" class="w-64 bg-black-soft text-white shrink-0 hidden flex-col">
         <div class="p-8">
           <img src="/logo.webp" alt="BA Logo" class="h-10 w-auto brightness-0 invert" />
           <p class="text-[10px] uppercase tracking-[0.3em] text-white/40 mt-4">Backoffice</p>
@@ -57,14 +57,14 @@ const menuItems = [
         
         <div class="p-4 border-t border-white/10">
           <div class="flex items-center gap-3 px-4 py-3">
-            <div class="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-xs font-bold">
-              {user.username.charAt(0).toUpperCase()}
+            <div id="user-avatar" class="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-xs font-bold">
+              <!-- JS -->
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium truncate">{user.username}</p>
+              <p id="user-name" class="text-sm font-medium truncate"><!-- JS --></p>
             </div>
-            <form action="/api/auth/logout" method="POST">
-              <button class="text-white/40 hover:text-white transition-colors">
+            <form action="/api/auth.php?action=logout" method="POST" id="logout-frm">
+              <button type="button" onclick="logout()" class="text-white/40 hover:text-white transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                 </svg>
@@ -73,21 +73,18 @@ const menuItems = [
           </div>
         </div>
       </aside>
-    )}
 
 		<div class="flex-1 flex flex-col min-w-0">
-      {user && (
-        <header class="h-16 bg-white border-b border-black-soft/5 flex items-center justify-between px-8 md:hidden">
-           <img src="/logo.webp" alt="BA Logo" class="h-8 w-auto grayscale" />
+        <header id="admin-mobile-header" class="h-16 bg-white border-b border-black-soft/5 hidden items-center justify-between px-8 md:hidden">
+           <img src="/logo.webp" alt="BA Logo" class="h-12 w-auto grayscale" />
            <button id="mobile-menu-btn" class="text-black-soft leading-none">
              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16m-7 6h7"></path>
              </svg>
            </button>
         </header>
-      )}
 
-			<main class="flex-1 p-8 md:p-12 overflow-y-auto">
+			<main class="flex-1 p-8 md:p-12 overflow-y-auto relative">
         <slot />
       </main>
 		</div>
@@ -113,17 +110,72 @@ const menuItems = [
       }
     </style>
 
-    <script>
+    <script is:inline>
       const loader = document.getElementById('admin-loader');
       
+      // CSR Auth Check
+      async function checkAuth() {
+        const isAuthPage = window.location.pathname.startsWith('/admin/login') || window.location.pathname.startsWith('/admin/register');
+        
+        try {
+          const res = await fetch('/api/auth.php?action=check');
+          const data = await res.json();
+          
+          const body = document.getElementById('admin-body');
+          
+          if (data.success && data.session) {
+            if (isAuthPage) {
+              window.location.href = '/admin';
+              return;
+            }
+            
+            const sidebar = document.getElementById('admin-sidebar');
+            const header = document.getElementById('admin-mobile-header');
+            const avatar = document.getElementById('user-avatar');
+            const name = document.getElementById('user-name');
+            
+            if (sidebar) sidebar.classList.replace('hidden', 'md:flex');
+            if (header) {
+                header.classList.remove('hidden');
+                header.classList.add('flex');
+            }
+            if (avatar) avatar.innerText = data.session.username.charAt(0).toUpperCase();
+            if (name) name.innerText = data.session.username;
+            
+            if (body) body.classList.remove('opacity-0');
+          } else {
+            if (!isAuthPage) {
+              window.location.href = '/admin/login';
+            } else {
+              if (body) body.classList.remove('opacity-0');
+            }
+          }
+        } catch (e) {
+          if (!isAuthPage) window.location.href = '/admin/login';
+          else document.getElementById('admin-body')?.classList.remove('opacity-0');
+        }
+      }
+
+      async function logout() {
+          try {
+              const res = await fetch('/api/auth.php?action=logout', { method: 'POST' });
+              if (res.ok) {
+                  window.location.href = '/admin/login';
+              }
+          } catch(e) {
+              window.location.href = '/admin/login';
+          }
+      }
+
+      window.addEventListener('load', checkAuth);
+
       // Global form submission interceptor
       document.addEventListener('submit', async (e) => {
-        const form = e.target as HTMLFormElement;
+        const form = e.target;
         
-        // Don't intercept logout or simple get forms
-        if (form.action.includes('logout') || form.method === 'get') return;
+        // Don't intercept GET forms
+        if (form.method === 'get') return;
         
-        // If the submit event was already prevented (e.g. by a confirm dialog in onsubmit), stop here
         if (e.defaultPrevented) return;
         
         e.preventDefault();
@@ -136,92 +188,42 @@ const menuItems = [
         // Disable all submit buttons
         const submitButtons = form.querySelectorAll('button[type="submit"]');
         submitButtons.forEach(btn => {
-          const button = btn as HTMLButtonElement;
-          button.disabled = true;
-          button.style.opacity = '0.5';
-          button.style.cursor = 'not-allowed';
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          btn.style.cursor = 'not-allowed';
         });
 
         try {
           const formData = new FormData(form);
           const response = await fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'Accept': 'application/json'
-            }
+             method: form.method || 'POST',
+             body: formData
           });
 
-          if (!response.ok) {
-            // Handle HTTP errors (500, 404, etc.)
-            const text = await response.text();
-            console.error("Server Error Content:", text);
-            let message = `Server Error (${response.status})`;
-            
-            // Try to extract a clean message if possible
-            if (response.status === 500) {
-               message += ": The server encountered an internal error. Check console for details.";
-            }
-            
-            alert(`${message}\n\nDetails:\n${text.substring(0, 500)}`);
-            throw new Error(`Server responded with ${response.status}`);
+          if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+          const result = await response.json();
+
+          if (result.success === false) {
+             throw new Error(result.error || "Operation failed");
           }
 
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const result = await response.json();
-            console.log("Action Result:", result);
-
-            // Check if Astro Action failed (wrapper error)
-            if (result.error) {
-              throw new Error(result.error.message || "Unknown Action Error");
-            }
-
-            // Check application-level error (my return { success: false, error: ... })
-            const data = result.data;
-            if (data && data.success === false) {
-              throw new Error(data.error || "Operation failed");
-            }
-
-            // Success! Redirect based on context
-            if (data && data.success) {
+          if (result.success) {
               const path = window.location.pathname;
               if (path.includes('/projects')) window.location.href = '/admin/projects';
               else if (path.includes('/cabinets')) window.location.href = '/admin/cabinets';
               else if (path.includes('/blog')) window.location.href = '/admin/blog';
-              else window.location.reload(); // Fallback
-            }
-          } else {
-            // It's probably HTML (a successful redirect page or an error page)
-            console.log("Response is not JSON, treating as success if OK");
-            if (response.ok) {
-              // If it's a redirect that fetch followed, we might be at the new page
-              if (response.redirected) {
-                window.location.href = response.url;
-              } else {
-                // Just reload or go to the relevant list
-                const path = window.location.pathname;
-                if (path.includes('/projects')) window.location.href = '/admin/projects';
-                else if (path.includes('/cabinets')) window.location.href = '/admin/cabinets';
-                else if (path.includes('/blog')) window.location.href = '/admin/blog';
-                else window.location.reload();
-              }
-            } else {
-              throw new Error("Server returned non-JSON error response.");
-            }
+              else if (path.includes('/login') || path.includes('/register')) window.location.href = '/admin';
+              else window.location.reload(); 
           }
-
-        } catch (err: any) {
-          console.error("Submission Error:", err);
+        } catch (err) {
           alert("Error: " + err.message);
           
-          // Reset UI on error so user can try again
           if (loader) loader.classList.add('opacity-0', 'pointer-events-none');
           submitButtons.forEach(btn => {
-            const button = btn as HTMLButtonElement;
-            button.disabled = false;
-            button.style.opacity = '1';
-            button.style.cursor = 'pointer';
+             btn.disabled = false;
+             btn.style.opacity = '1';
+             btn.style.cursor = 'pointer';
           });
         }
       });

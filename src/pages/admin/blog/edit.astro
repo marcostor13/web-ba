@@ -1,0 +1,436 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Edit Blog Post">
+  <div class="max-w-[1600px] mx-auto flex flex-col gap-10 h-full relative">
+    
+    <div id="loader" class="absolute inset-0 z-50 flex items-start justify-center pt-20 bg-beige-light/50">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+    </div>
+
+    <div id="form-content" class="hidden grid-cols-1 lg:grid-cols-2 gap-10 h-full">
+        <!-- Left: Form -->
+        <div class="bg-white p-10 shadow-xl rounded-sm border border-black-soft/5 h-fit">
+            <header class="flex flex-col gap-2 mb-10">
+              <h1 class="text-[12px] uppercase tracking-[0.4em] text-black-soft/40 font-medium">Blog / Edit</h1>
+              <h2 class="text-4xl md:text-[50px] font-light text-black-soft m-0 uppercase tracking-tight">Edit Post</h2>
+            </header>
+
+            <div id="error-msg" class="hidden bg-red-50 text-red-500 p-4 mb-6 text-sm border-l-4 border-red-500"></div>
+
+            <form id="blog-form" class="flex flex-col gap-10">
+                <input type="hidden" name="id" id="post-id" value="" />
+                
+                <!-- Main Info -->
+                <div class="grid grid-cols-1 gap-8 border-b border-black-soft/5 pb-10">
+                    <div class="flex flex-col gap-2">
+                        <label for="title" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Post Title</label>
+                        <input type="text" name="title" id="title" required class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-lg" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="main_image" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Main Image (Leave empty to keep current)</label>
+                        <input type="file" name="main_image" id="main_image" accept="image/*" class="font-light text-xs text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-beige-light file:text-black-soft hover:file:bg-gold hover:file:text-white file:transition-colors" />
+                        <img id="current-main-image" src="" alt="Current" class="w-32 h-20 object-cover mt-2 rounded-sm bg-gray-100 hidden" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="short_description" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Short Description</label>
+                        <textarea name="short_description" id="short_description" rows="3" class="border border-black-soft/10 p-4 focus:border-gold outline-none transition-colors font-light text-sm resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Dynamic Sections -->
+                <div class="flex flex-col gap-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[14px] uppercase tracking-[0.2em] text-black-soft font-medium">Content Sections</h3>
+                        <button type="button" id="add-section-btn" class="bg-black-soft text-white px-6 py-2 uppercase tracking-widest text-[10px] hover:bg-gold transition-colors">
+                            + Add Section
+                        </button>
+                    </div>
+
+                    <div id="sections-container" class="flex flex-col gap-8">
+                        <!-- Sections will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Hidden Input for JSON -->
+                <input type="hidden" name="sections" id="sections-json" />
+
+                <div class="flex justify-end gap-6 pt-10 border-t border-black-soft/5">
+                    <a href="/admin/blog" class="px-8 py-4 uppercase tracking-[0.3em] text-[11px] font-medium text-black-soft/40 hover:text-black-soft transition-colors">Cancel</a>
+                    <button type="submit" id="submit-btn" class="bg-gold text-white px-12 py-4 uppercase tracking-[0.3em] text-[11px] font-medium hover:bg-black-soft transition-colors shadow-lg">Update Post</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: Live Preview -->
+        <div class="hidden lg:block relative">
+            <div class="sticky top-10 bg-white shadow-2xl rounded-sm border border-black-soft/5 overflow-hidden h-[800px] overflow-y-auto w-full">
+                <!-- Preview Header -->
+                <div class="bg-black-soft text-white p-4 text-[10px] uppercase tracking-widest text-center">Live Preview</div>
+                
+                <!-- Preview Content -->
+                <div id="preview-area" class="bg-white">
+                    <!-- Dynamic Preview Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    const addBtn = document.getElementById('add-section-btn');
+    const container = document.getElementById('sections-container');
+    const form = document.getElementById('blog-form');
+    const jsonInput = document.getElementById('sections-json');
+    const previewArea = document.getElementById('preview-area');
+    const errorMsg = document.getElementById('error-msg');
+    const submitBtn = document.getElementById('submit-btn');
+    const editPageLoader = document.getElementById('loader');
+    const formContent = document.getElementById('form-content');
+    const currentMainImg = document.getElementById('current-main-image');
+    
+    // Inputs
+    const titleInput = document.getElementById('title');
+    const descInput = document.getElementById('short_description');
+    const mainImageInput = document.getElementById('main_image');
+    const postIdInput = document.getElementById('post-id');
+
+    let sectionCount = 0;
+    let initialMainImageSrc = '';
+
+    // --- RENDER HELPERS ---
+    const renderPreview = () => {
+        if (!previewArea) return;
+
+        let html = '';
+        
+        // Hero
+        const titleVal = titleInput?.value || "Post Title";
+        const descVal = descInput?.value || "Short description...";
+        
+        // For main image
+        let mainImgSrc = initialMainImageSrc || 'https://placehold.co/1200x600'; 
+        if (mainImageInput?.files && mainImageInput.files[0]) {
+             mainImgSrc = URL.createObjectURL(mainImageInput.files[0]);
+        }
+
+        html += `
+            <section class="h-[300px] relative flex items-end justify-center bg-cover bg-center" style="background-image: url('${mainImgSrc}');">
+                <div class="absolute inset-0 bg-black/30"></div>
+                <div class="relative z-10 text-center pb-10 px-6 max-w-4xl mx-auto">
+                    <h1 class="text-2xl text-white font-light leading-tight mb-2">${titleVal}</h1>
+                    <p class="text-white/80 text-sm font-light max-w-lg mx-auto">${descVal}</p>
+                </div>
+            </section>
+            <article class="p-10 flex flex-col gap-8">
+        `;
+
+        // Sections
+        const sectionElements = container?.querySelectorAll('.section-item');
+        if (sectionElements) {
+            sectionElements.forEach(el => {
+                const element = el;
+                const typeSelector = element.querySelector('.type-selector');
+                if (!typeSelector) return;
+                const type = typeSelector.value;
+                let content = '';
+                
+                if (type === 'title' || type === 'paragraph') {
+                    const localInput = element.querySelector('.content-input');
+                    content = localInput ? localInput.value : '';
+                    if (type === 'title') html += `<h2 class="text-2xl font-light text-black-soft">${content}</h2>`;
+                    if (type === 'paragraph') html += `<p class="text-base text-black-soft/70 font-light leading-relaxed whitespace-pre-line">${content}</p>`;
+                } else if (type === 'image_single') {
+                    const imgInput = element.querySelector('input[type="file"]');
+                    const existingImg = element.dataset.existingImage1;
+                    
+                    let imgSrc = existingImg || 'https://placehold.co/600x400';
+                    if (imgInput && imgInput.files && imgInput.files[0]) {
+                        imgSrc = URL.createObjectURL(imgInput.files[0]);
+                    }
+                    html += `<img src="${imgSrc}" class="w-full h-auto object-cover rounded-sm" />`;
+                } else if (type === 'image_double') {
+                    const inputs = element.querySelectorAll('input[type="file"]');
+                    const existingImg1 = element.dataset.existingImage1;
+                    const existingImg2 = element.dataset.existingImage2;
+                    
+                    let src1 = existingImg1 || 'https://placehold.co/300x400';
+                    let src2 = existingImg2 || 'https://placehold.co/300x400';
+
+                    if (inputs.length >= 2) {
+                      const input1 = inputs[0];
+                      const input2 = inputs[1];
+                      if (input1 && input1.files && input1.files[0]) src1 = URL.createObjectURL(input1.files[0]);
+                      if (input2 && input2.files && input2.files[0]) src2 = URL.createObjectURL(input2.files[0]);
+                    }
+                    
+                    html += `
+                        <div class="grid grid-cols-2 gap-4">
+                            <img src="${src1}" class="w-full h-[200px] object-cover rounded-sm" />
+                            <img src="${src2}" class="w-full h-[200px] object-cover rounded-sm" />
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        html += `</article>`;
+        previewArea.innerHTML = html;
+    };
+
+
+    // --- SECTION LOGIC ---
+    const getTemplate = (id, type = 'paragraph', content = '', existing1 = '', existing2 = '') => {
+        let inputHtml = '';
+        if (type === 'title') inputHtml = `<input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" value="${content.replace(/"/g, '&quot;')}" />`;
+        else if (type === 'paragraph') inputHtml = `<textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text...">${content}</textarea>`;
+        else if (type === 'image_single') {
+            inputHtml = `
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image (Overrides existing)</label>
+                    <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                    ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                </div>
+            `;
+        }
+        else if (type === 'image_double') {
+             inputHtml = `
+                <div class="grid grid-cols-2 gap-4">
+                     <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
+                        <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                        ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                    </div>
+                     <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
+                        <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                        ${existing2 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing2}" target="_blank" class="underline">View</a></div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+        <div class="section-item bg-beige-light/30 p-6 border border-black-soft/5 relative group" data-id="${id}" data-existing1="${existing1}" data-existing2="${existing2}">
+            <button type="button" class="remove-section absolute top-4 right-4 text-black-soft/30 hover:text-red-500 transition-colors" onclick="this.closest('.section-item').remove(); window.dispatchEvent(new Event('preview-update'));">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-2 w-1/3">
+                    <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Section Type</label>
+                    <select class="type-selector border-b border-black-soft/20 py-2 focus:border-gold outline-none bg-transparent font-light text-sm">
+                        <option value="paragraph" ${type === 'paragraph' ? 'selected' : ''}>Paragraph (Text)</option>
+                        <option value="title" ${type === 'title' ? 'selected' : ''}>Section Title</option>
+                        <option value="image_single" ${type === 'image_single' ? 'selected' : ''}>Single Image</option>
+                        <option value="image_double" ${type === 'image_double' ? 'selected' : ''}>Double Image</option>
+                    </select>
+                </div>
+
+                <div class="content-area mt-2">
+                    ${inputHtml}
+                </div>
+            </div>
+        </div>
+        `;
+    };
+
+    const addSection = (type = 'paragraph', content = '', existing1 = '', existing2 = '') => {
+        sectionCount++;
+        container.insertAdjacentHTML('beforeend', getTemplate(sectionCount, type, content, existing1, existing2));
+        
+        const newSection = container.lastElementChild;
+        const select = newSection.querySelector('.type-selector');
+
+        select.addEventListener('change', (e) => {
+             const newType = e.target.value;
+             const id = newSection.dataset.id;
+             const existing1 = newSection.dataset.existing1 || '';
+             const existing2 = newSection.dataset.existing2 || '';
+             
+             let inputHtml = '';
+             if (newType === 'title') {
+                 inputHtml = '<input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" />';
+             } else if (newType === 'paragraph') {
+                 inputHtml = '<textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text..."></textarea>';
+             } else if (newType === 'image_single') {
+                 inputHtml = `
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image (Overrides existing)</label>
+                        <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                        ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                    </div>
+                `;
+             } else if (newType === 'image_double') {
+                 inputHtml = `
+                    <div class="grid grid-cols-2 gap-4">
+                         <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
+                            <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                        </div>
+                         <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
+                            <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            ${existing2 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing2}" target="_blank" class="underline">View</a></div>` : ''}
+                        </div>
+                    </div>
+                `;
+             }
+             
+             newSection.querySelector('.content-area').innerHTML = inputHtml; 
+             renderPreview();
+        });
+
+        newSection.addEventListener('input', renderPreview);
+        newSection.addEventListener('change', renderPreview);
+    };
+
+    async function loadPost() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+
+      if (!id) {
+        window.location.href = '/admin/blog';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/blog.php?action=get&id=${id}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const post = json.data;
+          const sections = json.sections || [];
+
+          document.title = `Edit ${post.title} | Admin`;
+          postIdInput.value = post.id;
+          titleInput.value = post.title || '';
+          descInput.value = post.short_description || '';
+          
+          if (post.main_image) {
+            initialMainImageSrc = post.main_image;
+            currentMainImg.src = post.main_image;
+            currentMainImg.classList.remove('hidden');
+          }
+
+          sections.forEach(s => {
+              addSection(s.type, s.content_text || '', s.image_path_1 || '', s.image_path_2 || '');
+          });
+
+          renderPreview();
+
+          editPageLoader.classList.add('hidden');
+          formContent.classList.remove('hidden');
+          formContent.classList.add('grid');
+        } else {
+          window.location.href = '/admin/blog';
+        }
+      } catch (err) {
+        window.location.href = '/admin/blog';
+      }
+    }
+
+    addBtn.addEventListener('click', () => {
+        addSection();
+        renderPreview();
+    });
+
+    // Global listeners
+    titleInput.addEventListener('input', renderPreview);
+    descInput.addEventListener('input', renderPreview);
+    mainImageInput.addEventListener('change', renderPreview);
+    window.addEventListener('preview-update', renderPreview);
+    
+    // Form Submit
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const sections = [];
+        const sectionElements = container.querySelectorAll('.section-item');
+
+        sectionElements.forEach((el) => {
+            const type = el.querySelector('.type-selector').value;
+            const id = el.dataset.id;
+            
+            const sectionData = { 
+                type,
+                existing_image_1: el.dataset.existing1,
+                existing_image_2: el.dataset.existing2
+            };
+
+            if (type === 'title' || type === 'paragraph') {
+                const input = el.querySelector('.content-input');
+                sectionData.content = input ? input.value : '';
+            } else if (type === 'image_single') {
+                sectionData.image_1_key = `section_${id}_img_1`;
+            } else if (type === 'image_double') {
+                sectionData.image_1_key = `section_${id}_img_1`;
+                sectionData.image_2_key = `section_${id}_img_2`;
+            }
+
+            sections.push(sectionData);
+        });
+
+        jsonInput.value = JSON.stringify(sections);
+        
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'PREPARING...';
+        errorMsg.classList.add('hidden');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/blog.php?action=update', true);
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                submitBtn.innerText = 'UPLOADING... ' + percent + '%';
+            }
+        });
+
+        xhr.onload = function() {
+            submitBtn.innerText = 'PROCESSING...';
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const json = JSON.parse(xhr.responseText);
+                    if (json.success) {
+                        window.location.href = '/admin/blog';
+                    } else {
+                        if (json.error === "Unauthorized") window.location.href = '/admin/login';
+                        else {
+                            errorMsg.innerText = json.error || 'Failed to update post';
+                            errorMsg.classList.remove('hidden');
+                            submitBtn.disabled = false;
+                            submitBtn.innerText = 'Update Post';
+                        }
+                    }
+                } catch (e) {
+                     errorMsg.innerText = 'Invalid server response.';
+                     errorMsg.classList.remove('hidden');
+                     submitBtn.disabled = false;
+                     submitBtn.innerText = 'Update Post';
+                }
+            } else {
+                errorMsg.innerText = 'Server error. Please try again.';
+                errorMsg.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Update Post';
+            }
+        };
+
+        xhr.onerror = function() {
+            errorMsg.innerText = 'Network error. Please try again.';
+            errorMsg.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Update Post';
+        };
+
+        xhr.send(new FormData(form));
+    });
+
+    window.addEventListener('load', loadPost);
+  </script>
+</AdminLayout>

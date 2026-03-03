@@ -10,13 +10,19 @@ const { formId, isModal = false } = Astro.props;
 const getNameId = (id: string) => `${id}-${formId}`;
 ---
 
-<form id={formId} class="flex flex-col gap-10 contact-form-instance">
+<form 
+  id={formId} 
+  class="flex flex-col gap-10 contact-form-instance jtwf"
+  data-jobtread-web-form="true" 
+  data-key="22T8Hzjzh8M2VjUJxdCjFLkGs6VeySQeNr" 
+  data-success-url="https://bakitchenandbathdesigns.com/thank-you"
+>
   <!-- Name -->
   <div class="flex flex-col gap-2 relative group">
     <input 
       type="text" 
       id={getNameId('name')} 
-      name="name" 
+      name="contact.name" 
       placeholder="First and last name"
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 placeholder:text-black-soft/40 font-light"
@@ -29,7 +35,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
     <input 
       type="email" 
       id={getNameId('email')} 
-      name="email" 
+      name="contact.custom.22PFyVamdp2C" 
       placeholder="Email address"
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 placeholder:text-black-soft/40 font-light"
@@ -42,7 +48,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
     <input 
       type="tel" 
       id={getNameId('phone')} 
-      name="phone" 
+      name="contact.custom.22PFyVb7a3RY" 
       placeholder="Phone number"
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 placeholder:text-black-soft/40 font-light"
@@ -55,7 +61,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
     <input 
       type="text" 
       id={getNameId('address')} 
-      name="address" 
+      name="location.address" 
       placeholder="Address"
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 placeholder:text-black-soft/40 font-light"
@@ -66,7 +72,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
   <div class="flex flex-col gap-2 relative group">
     <select 
       id={getNameId('needs')} 
-      name="needs" 
+      name="account.custom.22PJGTpvuSqq" 
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 appearance-none font-light cursor-pointer"
     >
@@ -95,14 +101,14 @@ const getNameId = (id: string) => `${id}-${formId}`;
         <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94a3 3 0 1 1 4.243 4.243L8.567 17.822a1.5 1.5 0 0 1-2.122-2.122l7.879-7.879" />
       </svg>
     </div>
-    <input type="file" multiple class="absolute inset-0 opacity-0 cursor-pointer" />
+    <input type="file" multiple class="absolute inset-0 opacity-0 cursor-pointer" name="account.files" />
   </div>
 
   <!-- Hear About Us -->
   <div class="flex flex-col gap-2 relative group">
     <select 
       id={getNameId('source')} 
-      name="source" 
+      name="account.custom.22PJGTkZZ3XV" 
       required
       class="bg-transparent border-b border-black-soft/20 py-3 text-black-soft focus:outline-none focus:border-gold transition-colors duration-300 appearance-none font-light cursor-pointer"
     >
@@ -129,7 +135,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
     <label for={getNameId('message')} class="text-black-soft/60 font-light">Message</label>
     <textarea 
       id={getNameId('message')} 
-      name="message" 
+      name="contact.custom.22PHbkFQaqfs" 
       placeholder="Share your project details…" 
       rows="5"
       required
@@ -142,6 +148,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
     <button 
       type="submit" 
       class="text-gold text-[15px] uppercase tracking-widest font-medium border-b border-gold pb-1 hover:opacity-70 transition-opacity"
+      data-submit-button="true"
     >
       Submit
     </button>
@@ -164,27 +171,7 @@ const getNameId = (id: string) => `${id}-${formId}`;
 
     // Validation
     form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        let isValid = true;
-
-        // Simple validation loop
-        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
-        inputs.forEach((input) => {
-            const errorMsg = input.parentElement?.querySelector('.error-msg');
-            if (!input.value || (input.type === 'email' && !input.value.includes('@'))) {
-                errorMsg?.classList.remove('opacity-0');
-                input.classList.add('border-red-500');
-                isValid = false;
-            } else {
-                errorMsg?.classList.add('opacity-0');
-                input.classList.remove('border-red-500');
-            }
-        });
-
-        if (isValid) {
-            alert('Thank you! Your message has been sent.');
-            form.reset();
-        }
+        /* Removed local manual validation/alert block to allow JobTread script to handle submission */
     });
   };
 
@@ -193,3 +180,6 @@ const getNameId = (id: string) => `${id}-${formId}`;
   // or just run it immediately if defer is on.
   initForm(formId);
 </script>
+
+<!-- JobTread Script -->
+<script async src='https://app.jobtread.com/web-form.js'></script>

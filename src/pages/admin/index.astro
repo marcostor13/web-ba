@@ -1,11 +1,5 @@
 ---
 import AdminLayout from "../../layouts/AdminLayout.astro";
-import pool from "../../lib/db";
-
-const [cabinetsRows] = await pool.execute("SELECT COUNT(*) as count FROM cabinets");
-const stats = {
-  cabinets: (cabinetsRows as any[])[0].count
-};
 ---
 
 <AdminLayout title="Dashboard">
@@ -19,7 +13,7 @@ const stats = {
       <div class="bg-white p-10 shadow-lg rounded-sm border border-black-soft/5 flex flex-col gap-4">
         <span class="text-[10px] uppercase tracking-[0.3em] text-black-soft/40 font-medium">Total Products</span>
         <div class="flex items-baseline gap-4">
-          <span class="text-5xl font-light text-black-soft">{stats.cabinets}</span>
+          <span id="cabinets-count" class="text-5xl font-light text-black-soft">...</span>
           <span class="text-gold text-sm font-medium tracking-widest uppercase">Cabinets</span>
         </div>
       </div>
@@ -50,9 +44,28 @@ const stats = {
       <div class="bg-white p-8 border border-black-soft/5 rounded-sm">
         <div class="flex items-center gap-4">
           <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <p class="text-[14px] font-light text-black-soft/60">Connected to MySQL Local Instance</p>
+          <p class="text-[14px] font-light text-black-soft/60">Connected to PHP API</p>
         </div>
       </div>
     </div>
   </div>
+
+  <script is:inline>
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/cabinets.php?action=list');
+        const json = await res.json();
+        if (json.success && json.data) {
+          document.getElementById('cabinets-count').innerText = json.data.length;
+        } else {
+          document.getElementById('cabinets-count').innerText = '0';
+        }
+      } catch (e) {
+        console.error(e);
+        document.getElementById('cabinets-count').innerText = '-';
+      }
+    }
+    
+    window.addEventListener('load', fetchStats);
+  </script>
 </AdminLayout>

@@ -1,0 +1,20 @@
+[
+    {
+        "id": 15,
+        "post_id": 1,
+        "type": "image_single",
+        "content_text": null,
+        "image_path_1": null,
+        "image_path_2": null,
+        "order_index": 0
+    },
+    {
+        "id": 16,
+        "post_id": 1,
+        "type": "image_double",
+        "content_text": null,
+        "image_path_1": "\/uploads\/blog\/1772219013677-pugh-1-.webp",
+        "image_path_2": "\/uploads\/blog\/1772219016332-image-header-6-.webp",
+        "order_index": 1
+    }
+]

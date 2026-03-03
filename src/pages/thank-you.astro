@@ -1,0 +1,37 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+---
+
+<Layout>
+  <!-- Inject Event Snippet into <head> -->
+  <Fragment slot="head">
+    <!-- Event snippet for Submit lead form conversion page -->
+    <script is:inline>
+      gtag('event', 'conversion', {
+          'send_to': 'AW-16650762601/V9ZJCMv1tYEcEOny2YM-',
+          'value': 1.0,
+          'currency': 'USD'
+      });
+    </script>
+  </Fragment>
+
+  <Header />
+  
+  <main class="min-h-screen flex items-center justify-center px-6 pt-24 bg-beige-light">
+    <div class="max-w-2xl text-center space-y-6">
+      <h1 class="text-4xl md:text-5xl font-light text-black-soft">Thank You!</h1>
+      <p class="text-xl text-black-soft/70 font-light leading-relaxed">
+        Thank you for your request! A member of our team will reach out shortly to follow up and discuss your project.
+      </p>
+      <div class="pt-8">
+        <a 
+          href="/" 
+          class="inline-block border border-gold text-gold px-8 py-3 rounded hover:bg-gold hover:text-white transition-colors duration-300"
+        >
+          Return to Homepage
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>

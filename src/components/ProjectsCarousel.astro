@@ -1,17 +1,4 @@
 ---
-import pool from '../lib/db';
-
-const [rows] = await pool.execute("SELECT * FROM projects ORDER BY created_at ASC, id ASC LIMIT 5");
-const dbProjects = (rows as any[]).map(p => ({
-  name: p.name,
-  image: p.main_image,
-  logo: p.logo_overlay,
-  href: `/projects/${p.category.toLowerCase()}/${p.id}`
-}));
-
-// Double/Triple for infinite loop
-const projects = [...dbProjects, ...dbProjects, ...dbProjects];
-const originalCount = dbProjects.length;
 ---
 
 <section class="bg-beige-light px-6 md:px-[54px] py-[110px] flex flex-col gap-12 overflow-hidden">
@@ -24,53 +11,97 @@ const originalCount = dbProjects.length;
     </a>
   </div>
 
+  <div id="projects-carousel-loader" class="flex justify-center py-10">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gold"></div>
+  </div>
+
   <div 
     id="carousel-container"
-    class="relative w-full overflow-x-auto no-scrollbar flex gap-6 md:gap-[30px] pb-12 cursor-grab active:cursor-grabbing"
+    class="relative w-full overflow-x-auto no-scrollbar flex gap-6 md:gap-[30px] pb-12 cursor-grab active:cursor-grabbing hidden"
   >
-    {projects.map((project, index) => (
+    <!-- Dynamic content injected here -->
+  </div>
+</section>
+
+<script>
+  let originalCount = 0;
+  const container = document.getElementById('carousel-container');
+  const loader = document.getElementById('projects-carousel-loader');
+  let isHovered = false;
+
+  const renderProject = (project: { href: string; image: string; name: string; logo: string | null }, index: number) => {
+    return `
       <div 
         class="min-w-[85vw] md:min-w-[calc(50%-15px)] lg:min-w-[480px] flex flex-col gap-6 project-card reveal reveal-up"
-        data-index={index}
+        data-index="${index}"
       >
-        <a href={project.href} class="relative block aspect-[16/10] overflow-hidden group">
+        <a href="${project.href}" class="relative block aspect-[16/10] overflow-hidden group">
           <img 
-            src={project.image} 
-            alt={project.name} 
+            src="${project.image}" 
+            alt="${project.name}" 
             class="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
           />
           <div class="absolute inset-0 bg-black-soft/30 transition-opacity duration-500"></div>
           <div class="absolute inset-0 flex items-center justify-center p-12 pointer-events-none">
-            <img 
-              src={project.logo} 
-              alt={`${project.name} logo`} 
-              class="max-w-[220px] max-h-[100px] object-contain invert brightness-0"
-            />
+            ${project.logo ? `<img src="${project.logo}" alt="${project.name} logo" class="w-[140px] h-[80px] object-contain invert brightness-0" />` : ''}
           </div>
         </a>
         <div class="flex flex-col gap-4">
           <h3 class="text-2xl md:text-[28px] font-normal text-black-soft m-0">
-            {project.name}
+            ${project.name}
           </h3>
-          <a href={project.href} class="text-[14px] uppercase tracking-widest text-black-soft/40 hover:text-gold transition-colors duration-300 border-b border-black-soft/10 w-fit pb-1">
+          <a href="${project.href}" class="text-[14px] uppercase tracking-widest text-black-soft/40 hover:text-gold transition-colors duration-300 border-b border-black-soft/10 w-fit pb-1">
             View
           </a>
         </div>
       </div>
-    ))}
-  </div>
-</section>
+    `;
+  };
 
-<script define:vars={{ originalCount }}>
-  const container = document.getElementById('carousel-container');
-  let isHovered = false;
+  const loadProjects = async () => {
+    try {
+      const resp = await fetch('/api/projects.php?action=list');
+      const json = await resp.json();
+      
+      if (json.success && json.data) {
+        // Limit to 5 projects like original query
+        const dbProjects = json.data.slice(0, 5).map(p => ({
+          name: p.name,
+          image: p.main_image,
+          logo: p.logo_overlay,
+          href: `/projects/${p.category.toLowerCase()}/detail/?id=${p.id}`
+        }));
+
+        originalCount = dbProjects.length;
+        if (originalCount === 0) {
+          loader.classList.add('hidden');
+          return;
+        }
+
+        const projects = [...dbProjects, ...dbProjects, ...dbProjects];
+        
+        container.innerHTML = projects.map((p, i) => renderProject(p, i)).join('');
+        
+        loader.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        // Slight delay to allow DOM to insert elements properly before layout calculations
+        setTimeout(initCarousel, 100);
+      }
+    } catch (e) {
+      console.error('Failed to load projects', e);
+      loader.classList.add('hidden');
+    }
+  };
 
   const initCarousel = () => {
     if (!container) return;
 
     const cards = container.querySelectorAll('.project-card');
-    if (cards.length === 0) return;
+    if (cards.length < 2) return;
 
+    // Trigger reveal manually since DOM just got updated
+    cards.forEach(c => c.classList.add('revealed'));
 
     const cardWidthWithGap = cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
 
@@ -85,9 +116,9 @@ const originalCount = dbProjects.length;
 
         // Seamless reset
         if (currentScroll >= thirdWidth * 2) {
-          container.scrollTo({ left: currentScroll - thirdWidth, behavior: 'instant' as any });
+          container.scrollTo({ left: currentScroll - thirdWidth, behavior: 'instant' });
         } else if (currentScroll <= 0) {
-          container.scrollTo({ left: thirdWidth, behavior: 'instant' as any });
+          container.scrollTo({ left: thirdWidth, behavior: 'instant' });
         }
 
         container.scrollBy({ left: cardWidthWithGap, behavior: 'smooth' });
@@ -100,12 +131,9 @@ const originalCount = dbProjects.length;
     container.addEventListener('mouseleave', () => isHovered = false);
     container.addEventListener('touchstart', () => isHovered = true);
     container.addEventListener('touchend', () => isHovered = false);
-
-    // Manual scroll sync: if user scrolls, we might want to sync, but snap handles most of it.
   };
 
-  // Run on mount
-  window.addEventListener('load', initCarousel);
+  window.addEventListener('load', loadProjects);
 </script>
 
 <style>
@@ -121,5 +149,12 @@ const originalCount = dbProjects.length;
   }
   .project-card {
     scroll-snap-align: start;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease-out;
+  }
+  .project-card.revealed {
+    opacity: 1;
+    transform: translateY(0);
   }
 </style>

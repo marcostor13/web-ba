@@ -1,11 +1,5 @@
 ---
 import AdminLayout from "../../../layouts/AdminLayout.astro";
-import { actions } from "astro:actions";
-
-const result = Astro.getActionResult(actions.createCabinet);
-if (result?.data?.success) {
-	return Astro.redirect("/admin/cabinets");
-}
 ---
 
 <AdminLayout title="Add New Cabinet">
@@ -16,7 +10,9 @@ if (result?.data?.success) {
     </header>
 
     <div class="bg-white p-10 shadow-xl rounded-sm border border-black-soft/5">
-      <form method="POST" action={actions.createCabinet} enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div id="error-msg" class="hidden mb-6 bg-red-50 text-red-500 p-4 text-sm border-l-4 border-red-500"></div>
+
+      <form id="create-form" class="grid grid-cols-1 md:grid-cols-2 gap-10">
         <!-- Main Info -->
         <div class="flex flex-col gap-8">
            <div class="flex flex-col gap-2">
@@ -65,13 +61,72 @@ if (result?.data?.success) {
 
         <div class="md:col-span-2 flex justify-end gap-6 pt-10 border-t border-black-soft/5">
            <a href="/admin/cabinets" class="px-8 py-4 uppercase tracking-[0.3em] text-[11px] font-medium text-black-soft/40 hover:text-black-soft transition-colors">Cancel</a>
-           <button type="submit" class="bg-gold text-white px-12 py-4 uppercase tracking-[0.3em] text-[11px] font-medium hover:bg-black-soft transition-colors shadow-lg">Save Product</button>
+           <button type="submit" id="submit-btn" class="bg-gold text-white px-12 py-4 uppercase tracking-[0.3em] text-[11px] font-medium hover:bg-black-soft transition-colors shadow-lg">Save Product</button>
         </div>
       </form>
-      
-      {result?.error && (
-        <p class="mt-6 text-red-500 text-xs font-light italic text-center">{result.error.message}</p>
-      )}
     </div>
   </div>
+
+  <script is:inline>
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errorMsg = document.getElementById('error-msg');
+      
+      btn.disabled = true;
+      btn.innerText = 'PREPARING...';
+      errorMsg.classList.add('hidden');
+
+      const formData = new FormData(e.target);
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/cabinets.php?action=create', true);
+
+      xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              btn.innerText = 'UPLOADING... ' + percent + '%';
+          }
+      });
+
+      xhr.onload = function() {
+          btn.innerText = 'PROCESSING...';
+          if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                  const json = JSON.parse(xhr.responseText);
+                  if (json.success) {
+                      window.location.href = '/admin/cabinets';
+                  } else {
+                      if (json.error === "Unauthorized") window.location.href = '/admin/login';
+                      else {
+                          errorMsg.innerText = json.error || 'Failed to create cabinet';
+                          errorMsg.classList.remove('hidden');
+                          btn.disabled = false;
+                          btn.innerText = 'Create Cabinet';
+                      }
+                  }
+              } catch (e) {
+                   errorMsg.innerText = 'Invalid server response.';
+                   errorMsg.classList.remove('hidden');
+                   btn.disabled = false;
+                   btn.innerText = 'Create Cabinet';
+              }
+          } else {
+              errorMsg.innerText = 'Server error. Please try again.';
+              errorMsg.classList.remove('hidden');
+              btn.disabled = false;
+              btn.innerText = 'Create Cabinet';
+          }
+      };
+
+      xhr.onerror = function() {
+          errorMsg.innerText = 'Network error. Please try again.';
+          errorMsg.classList.remove('hidden');
+          btn.disabled = false;
+          btn.innerText = 'Create Cabinet';
+      };
+
+      xhr.send(formData);
+    });
+  </script>
 </AdminLayout>
