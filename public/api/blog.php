@@ -41,6 +41,11 @@ try {
         
         if ($action === 'create') {
             $title = $_POST['title'] ?? '';
+            $slug = $_POST['slug'] ?? '';
+            $meta_title = $_POST['meta_title'] ?? $title;
+            $meta_desc = $_POST['meta_description'] ?? '';
+            $author = $_POST['author'] ?? 'BA Kitchen & Bath';
+            $status = $_POST['status'] ?? 'published';
             $short_desc = $_POST['short_description'] ?? '';
             $sectionsStr = $_POST['sections'] ?? '[]';
             $sections = json_decode($sectionsStr, true);
@@ -52,14 +57,16 @@ try {
                 sendJson(["success" => false, "error" => "Main image is required"]);
             }
 
-            $baseSlug = strtolower(trim(preg_replace('/[^a-z0-9]+/', '-', $title), '-'));
-            $slug = $baseSlug . '-' . substr(time(), -4);
+            if (empty($slug)) {
+                $baseSlug = strtolower(trim(preg_replace('/[^a-z0-9]+/', '-', $title), '-'));
+                $slug = $baseSlug . '-' . substr(time(), -4);
+            }
 
             $pdo->beginTransaction();
 
             try {
-                $stmt = $pdo->prepare("INSERT INTO blog_posts (title, slug, short_description, main_image) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$title, $slug, $short_desc, $mainImagePath]);
+                $stmt = $pdo->prepare("INSERT INTO blog_posts (title, slug, meta_title, meta_description, author, status, short_description, main_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$title, $slug, $meta_title, $meta_desc, $author, $status, $short_desc, $mainImagePath]);
                 $postId = $pdo->lastInsertId();
 
                 $orderIndex = 0;
@@ -74,8 +81,18 @@ try {
                         $imagePath2 = saveAsWebP($_FILES[$section['image_2_key']], "blog");
                     }
 
-                    $stmt = $pdo->prepare("INSERT INTO blog_sections (post_id, type, content_text, image_path_1, image_path_2, order_index) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$postId, $section['type'], $section['content'] ?? null, $imagePath1, $imagePath2, $orderIndex]);
+                    $stmt = $pdo->prepare("INSERT INTO blog_sections (post_id, type, title_level, content_text, image_path_1, image_alt_1, image_path_2, image_alt_2, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $postId, 
+                        $section['type'], 
+                        $section['title_level'] ?? 'h2',
+                        $section['content'] ?? null, 
+                        $imagePath1, 
+                        $section['image_alt_1'] ?? null,
+                        $imagePath2, 
+                        $section['image_alt_2'] ?? null,
+                        $orderIndex
+                    ]);
                     $orderIndex++;
                 }
 
@@ -91,6 +108,11 @@ try {
             if (!$id) sendJson(["success" => false, "error" => "ID required"]);
 
             $title = $_POST['title'] ?? '';
+            $slug = $_POST['slug'] ?? '';
+            $meta_title = $_POST['meta_title'] ?? $title;
+            $meta_desc = $_POST['meta_description'] ?? '';
+            $author = $_POST['author'] ?? '';
+            $status = $_POST['status'] ?? 'published';
             $short_desc = $_POST['short_description'] ?? '';
             $sectionsStr = $_POST['sections'] ?? '[]';
             $sections = json_decode($sectionsStr, true);
@@ -109,8 +131,8 @@ try {
                     if ($oldPost && $oldPost['main_image']) deleteLocalFile($oldPost['main_image']);
                 }
 
-                $stmt = $pdo->prepare("UPDATE blog_posts SET title=?, short_description=?, main_image=? WHERE id=?");
-                $stmt->execute([$title, $short_desc, $mainImagePath, $id]);
+                $stmt = $pdo->prepare("UPDATE blog_posts SET title=?, slug=?, meta_title=?, meta_description=?, author=?, status=?, short_description=?, main_image=? WHERE id=?");
+                $stmt->execute([$title, $slug, $meta_title, $meta_desc, $author, $status, $short_desc, $mainImagePath, $id]);
 
                 // Delete old sections data
                 $stmt = $pdo->prepare("DELETE FROM blog_sections WHERE post_id=?");
@@ -128,8 +150,18 @@ try {
                         $imagePath2 = saveAsWebP($_FILES[$section['image_2_key']], "blog");
                     }
 
-                    $stmt = $pdo->prepare("INSERT INTO blog_sections (post_id, type, content_text, image_path_1, image_path_2, order_index) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$id, $section['type'], $section['content'] ?? null, $imagePath1, $imagePath2, $orderIndex]);
+                    $stmt = $pdo->prepare("INSERT INTO blog_sections (post_id, type, title_level, content_text, image_path_1, image_alt_1, image_path_2, image_alt_2, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $id, 
+                        $section['type'], 
+                        $section['title_level'] ?? 'h2',
+                        $section['content'] ?? null, 
+                        $imagePath1, 
+                        $section['image_alt_1'] ?? null,
+                        $imagePath2, 
+                        $section['image_alt_2'] ?? null,
+                        $orderIndex
+                    ]);
                     $orderIndex++;
                 }
 

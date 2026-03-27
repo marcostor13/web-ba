@@ -94,14 +94,15 @@ const getNameId = (id: string) => `${id}-${formId}`;
   </div>
 
   <!-- File Upload Placeholder -->
-  <div class="flex flex-col gap-2 relative group">
-    <div class="flex justify-between items-center bg-transparent border-b border-black-soft/20 py-3 cursor-pointer group-hover:border-gold transition-colors">
-      <span class="text-black-soft/40 font-light text-[16px]">Include a minimum of 3 photographs of the existing layout</span>
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-black-soft/40">
+  <div class="flex flex-col gap-2 relative group w-full">
+    <div class="flex justify-between items-center bg-transparent border-b border-black-soft/20 py-3 cursor-pointer group-hover:border-gold transition-colors w-full">
+      <span class="file-text-placeholder text-black-soft/40 font-light text-[16px] pointer-events-none truncate pr-4">Include a minimum of 3 photographs of the existing layout</span>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-black-soft/40 flex-shrink-0 pointer-events-none">
         <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94a3 3 0 1 1 4.243 4.243L8.567 17.822a1.5 1.5 0 0 1-2.122-2.122l7.879-7.879" />
       </svg>
     </div>
-    <input type="file" multiple class="absolute inset-0 opacity-0 cursor-pointer" name="account.files" />
+    <input type="file" accept="image/*" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" name="account.files" />
+    <span class="error-msg text-[10px] text-red-500 absolute -bottom-5 left-0 opacity-0 transition-opacity">Minimum 3 photos required</span>
   </div>
 
   <!-- Hear About Us -->
@@ -169,6 +170,40 @@ const getNameId = (id: string) => `${id}-${formId}`;
         e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
     });
 
+    // File input visual feedback
+    const fileInput = form.querySelector('input[type="file"]');
+    const fileText = form.querySelector('.file-text-placeholder');
+    const originalText = fileText?.textContent || "Include a minimum of 3 photographs of the existing layout";
+
+    fileInput?.addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        if (files.length < 3) {
+          fileInput.setCustomValidity("Please select at least 3 photographs.");
+        } else {
+          fileInput.setCustomValidity("");
+        }
+
+        if (files.length === 1) {
+          fileText.textContent = `${files[0].name}`;
+        } else {
+          fileText.textContent = `${files.length} photographs selected`;
+        }
+        fileText.classList.add('text-black-soft');
+        fileText.classList.remove('text-black-soft/40');
+      } else {
+        fileInput.setCustomValidity("Please select at least 3 photographs.");
+        fileText.textContent = originalText;
+        fileText.classList.remove('text-black-soft');
+        fileText.classList.add('text-black-soft/40');
+      }
+    });
+
+    // Validacion inicial por si instancian vacio el require
+    if (fileInput) {
+      fileInput.setCustomValidity("Please select at least 3 photographs.");
+    }
+
     // Validation
     form.addEventListener('submit', (e) => {
         /* Removed local manual validation/alert block to allow JobTread script to handle submission */
@@ -181,5 +216,3 @@ const getNameId = (id: string) => `${id}-${formId}`;
   initForm(formId);
 </script>
 
-<!-- JobTread Script -->
-<script async src='https://app.jobtread.com/web-form.js'></script>

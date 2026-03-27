@@ -2,6 +2,22 @@
 import '../styles/global.css';
 import Footer from '../components/Footer.astro';
 import ContactModal from '../components/ContactModal.astro';
+
+interface Props {
+	title?: string;
+	description?: string;
+	image?: string;
+	url?: string;
+	type?: string;
+}
+
+const { 
+	title = "BA | Kitchen & Bath Remodeling", 
+	description = "BA Kitchen & Bath Design specializes in fully customized luxury remodels in the greater metro Atlanta area. Quality craftsmanship and personalized service.",
+	image = "/logo.svg",
+	url = "https://bakitchenandbathdesign.com",
+	type = "website"
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -15,7 +31,26 @@ import ContactModal from '../components/ContactModal.astro';
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-		<title>BA | Kitchen & Bath Remodeling</title>
+		
+		<!-- Primary Meta Tags -->
+		<title>{title}</title>
+		<meta name="title" content={title} />
+		<meta name="description" content={description} />
+
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content={type} />
+		<meta property="og:url" content={url} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={new URL(image, Astro.url).toString()} />
+
+		<!-- Twitter -->
+		<meta property="twitter:card" content="summary_large_image" />
+		<meta property="twitter:url" content={url} />
+		<meta property="twitter:title" content={title} />
+		<meta property="twitter:description" content={description} />
+		<meta property="twitter:image" content={new URL(image, Astro.url).toString()} />
+
 		<!-- Google tag (gtag.js) -->
 		<script async src="https://www.googletagmanager.com/gtag/js?id=AW-16650762601"></script>
 		<script is:inline>
@@ -24,6 +59,8 @@ import ContactModal from '../components/ContactModal.astro';
 			gtag('js', new Date());
 			gtag('config', 'AW-16650762601');
 		</script>
+		<!-- JobTread Form Script -->
+		<script defer src="https://app.jobtread.com/web-form.js"></script>
 		<slot name="head" />
 	</head>
 	<body class="bg-beige-light">

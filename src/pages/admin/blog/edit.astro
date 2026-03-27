@@ -23,19 +23,47 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
                 <input type="hidden" name="id" id="post-id" value="" />
                 
                 <!-- Main Info -->
-                <div class="grid grid-cols-1 gap-8 border-b border-black-soft/5 pb-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-black-soft/5 pb-10">
                     <div class="flex flex-col gap-2">
                         <label for="title" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Post Title</label>
                         <input type="text" name="title" id="title" required class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-lg" />
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="main_image" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Main Image (Leave empty to keep current)</label>
-                        <input type="file" name="main_image" id="main_image" accept="image/*" class="font-light text-xs text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-beige-light file:text-black-soft hover:file:bg-gold hover:file:text-white file:transition-colors" />
-                        <img id="current-main-image" src="" alt="Current" class="w-32 h-20 object-cover mt-2 rounded-sm bg-gray-100 hidden" />
+                        <label for="slug" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Friendly URL (Slug)</label>
+                        <input type="text" name="slug" id="slug" class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-lg" placeholder="e.g. alvarez-kitchen" />
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="short_description" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Short Description</label>
-                        <textarea name="short_description" id="short_description" rows="3" class="border border-black-soft/10 p-4 focus:border-gold outline-none transition-colors font-light text-sm resize-none"></textarea>
+                        <label for="author" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Author</label>
+                        <input type="text" name="author" id="author" class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-sm" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="status" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Status</label>
+                        <select name="status" id="status" class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-sm bg-transparent">
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-2 md:col-span-2">
+                         <label for="main_image" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Main Image (Leave empty to keep current)</label>
+                         <input type="file" name="main_image" id="main_image" accept="image/*" class="font-light text-xs text-black-soft/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:bg-beige-light file:text-black-soft hover:file:bg-gold hover:file:text-white file:transition-colors" />
+                         <img id="current-main-image" src="" alt="Current" class="w-32 h-20 object-cover mt-2 rounded-sm bg-gray-100 hidden" />
+                    </div>
+                    <div class="flex flex-col gap-2 md:col-span-2">
+                        <label for="short_description" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Listing Summary (Short Description)</label>
+                        <textarea name="short_description" id="short_description" rows="2" class="border border-black-soft/10 p-4 focus:border-gold outline-none transition-colors font-light text-sm resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- SEO Section -->
+                <div class="grid grid-cols-1 gap-8 border-b border-black-soft/5 pb-10">
+                    <h3 class="text-[12px] uppercase tracking-[0.2em] text-black-soft/40 font-medium">SEO & Meta Tags</h3>
+                    <div class="flex flex-col gap-2">
+                        <label for="meta_title" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Meta Title</label>
+                        <input type="text" name="meta_title" id="meta_title" class="border-b border-black-soft/20 py-2 focus:border-gold outline-none transition-colors font-light text-sm" placeholder="Title for Google search results" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="meta_description" class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Meta Description</label>
+                        <textarea name="meta_description" id="meta_description" rows="2" class="border border-black-soft/10 p-4 focus:border-gold outline-none transition-colors font-light text-sm resize-none" placeholder="Description for search results (max 160 chars)"></textarea>
                     </div>
                 </div>
 
@@ -139,8 +167,11 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
                 if (type === 'title' || type === 'paragraph') {
                     const localInput = element.querySelector('.content-input');
                     content = localInput ? localInput.value : '';
-                    if (type === 'title') html += `<h2 class="text-2xl font-light text-black-soft">${content}</h2>`;
-                    if (type === 'paragraph') html += `<p class="text-base text-black-soft/70 font-light leading-relaxed whitespace-pre-line">${content}</p>`;
+                    if (type === 'title') {
+                        const level = element.querySelector('.level-selector')?.value || 'h2';
+                        html += `<${level} class="text-2xl font-light text-black-soft">${content}</${level}>`;
+                    }
+                    if (type === 'paragraph') html += `<div class="text-base text-black-soft/70 font-light leading-relaxed whitespace-pre-line">${content}</div>`;
                 } else if (type === 'image_single') {
                     const imgInput = element.querySelector('input[type="file"]');
                     const existingImg = element.dataset.existingImage1;
@@ -181,43 +212,94 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
 
     // --- SECTION LOGIC ---
-    const getTemplate = (id, type = 'paragraph', content = '', existing1 = '', existing2 = '') => {
+    const getTemplate = (id, type = 'paragraph', content = '', existing1 = '', existing2 = '', level = 'h2', alt1 = '', alt2 = '') => {
         let inputHtml = '';
-        if (type === 'title') inputHtml = `<input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" value="${content.replace(/"/g, '&quot;')}" />`;
-        else if (type === 'paragraph') inputHtml = `<textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text...">${content}</textarea>`;
-        else if (type === 'image_single') {
+        if (type === 'title') {
+            inputHtml = `
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2 w-1/4">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Heading Level</label>
+                        <select class="level-selector border-b border-black-soft/20 py-2 focus:border-gold outline-none bg-transparent font-light text-sm">
+                            <option value="h2" ${level === 'h2' ? 'selected' : ''}>H2 (Large)</option>
+                            <option value="h3" ${level === 'h3' ? 'selected' : ''}>H3 (Medium)</option>
+                            <option value="h4" ${level === 'h4' ? 'selected' : ''}>H4 (Small)</option>
+                        </select>
+                    </div>
+                    <input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" value="${content.replace(/"/g, '&quot;')}" />
+                </div>
+            `;
+        }
+        else if (type === 'paragraph') {
             inputHtml = `
                 <div class="flex flex-col gap-2">
-                    <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image (Overrides existing)</label>
-                    <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                    ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                    <div class="flex gap-2 mb-1">
+                        <button type="button" onclick="formatText(this, 'b')" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">B</button>
+                        <button type="button" onclick="formatText(this, 'i')" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">I</button>
+                        <button type="button" onclick="addLink(this)" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">Link</button>
+                    </div>
+                    <textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text...">${content}</textarea>
+                </div>
+            `;
+        }
+        else if (type === 'image_single') {
+            inputHtml = `
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image</label>
+                        <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                        ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Alt Text</label>
+                        <input type="text" class="alt-input-1 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="Describe image for SEO" value="${alt1.replace(/"/g, '&quot;')}" />
+                    </div>
                 </div>
             `;
         }
         else if (type === 'image_double') {
              inputHtml = `
-                <div class="grid grid-cols-2 gap-4">
-                     <div class="flex flex-col gap-2">
-                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
-                        <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                        ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                <div class="grid grid-cols-2 gap-8">
+                     <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
+                            <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Alt Text (Left)</label>
+                            <input type="text" class="alt-input-1 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="SEO description" value="${alt1.replace(/"/g, '&quot;')}" />
+                        </div>
                     </div>
-                     <div class="flex flex-col gap-2">
-                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
-                        <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                        ${existing2 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing2}" target="_blank" class="underline">View</a></div>` : ''}
+                     <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
+                            <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            ${existing2 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing2}" target="_blank" class="underline">View</a></div>` : ''}
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Alt Text (Right)</label>
+                            <input type="text" class="alt-input-2 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="SEO description" value="${alt2.replace(/"/g, '&quot;')}" />
+                        </div>
                     </div>
                 </div>
             `;
         }
 
         return `
-        <div class="section-item bg-beige-light/30 p-6 border border-black-soft/5 relative group" data-id="${id}" data-existing1="${existing1}" data-existing2="${existing2}">
-            <button type="button" class="remove-section absolute top-4 right-4 text-black-soft/30 hover:text-red-500 transition-colors" onclick="this.closest('.section-item').remove(); window.dispatchEvent(new Event('preview-update'));">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-            </button>
+        <div class="section-item bg-beige-light/30 p-6 border border-black-soft/5 relative group" data-id="${id}" data-existing1="${existing1}" data-existing2="${existing2}" data-alt1="${alt1}" data-alt2="${alt2}" data-level="${level}">
+            <div class="absolute top-4 right-4 flex gap-2">
+                <button type="button" title="Move Up" class="text-black-soft/30 hover:text-gold transition-colors" onclick="moveSection(this, -1)">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                </button>
+                <button type="button" title="Move Down" class="text-black-soft/30 hover:text-gold transition-colors" onclick="moveSection(this, 1)">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+                <button type="button" class="remove-section text-black-soft/30 hover:text-red-500 transition-colors" onclick="if(confirm('Delete this section?')) { this.closest('.section-item').remove(); window.dispatchEvent(new Event('preview-update')); }">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
             
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-2 w-1/3">
@@ -238,9 +320,48 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         `;
     };
 
-    const addSection = (type = 'paragraph', content = '', existing1 = '', existing2 = '') => {
+    // --- FORMATTING HELPERS ---
+    window.formatText = (btn, tag) => {
+        const textarea = btn.closest('.flex-col').querySelector('textarea');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selected = text.substring(start, end);
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+        
+        textarea.value = before + `<${tag}>` + selected + `</${tag}>` + after;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    window.addLink = (btn) => {
+        const url = prompt('Enter URL:', 'https://');
+        if (!url) return;
+        const textarea = btn.closest('.flex-col').querySelector('textarea');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selected = text.substring(start, end);
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+        
+        textarea.value = before + `<a href="${url}">` + (selected || 'link text') + `</a>` + after;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    window.moveSection = (btn, direction) => {
+        const section = btn.closest('.section-item');
+        if (direction === -1 && section.previousElementSibling) {
+            section.parentNode.insertBefore(section, section.previousElementSibling);
+        } else if (direction === 1 && section.nextElementSibling) {
+            section.parentNode.insertBefore(section.nextElementSibling, section);
+        }
+        window.dispatchEvent(new Event('preview-update'));
+    };
+
+    const addSection = (type = 'paragraph', content = '', existing1 = '', existing2 = '', level = 'h2', alt1 = '', alt2 = '') => {
         sectionCount++;
-        container.insertAdjacentHTML('beforeend', getTemplate(sectionCount, type, content, existing1, existing2));
+        container.insertAdjacentHTML('beforeend', getTemplate(sectionCount, type, content, existing1, existing2, level, alt1, alt2));
         
         const newSection = container.lastElementChild;
         const select = newSection.querySelector('.type-selector');
@@ -248,40 +369,73 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         select.addEventListener('change', (e) => {
              const newType = e.target.value;
              const id = newSection.dataset.id;
-             const existing1 = newSection.dataset.existing1 || '';
-             const existing2 = newSection.dataset.existing2 || '';
-             
-             let inputHtml = '';
+             newSection.querySelector('.content-area').innerHTML = getTemplate(id, newType, '', '', '', 'h2', '', '').split('<div class="content-area mt-2">')[1]?.split('</div>\n            </div>\n        </div>')[0] || 'Error loading template area'; 
+             // Note: simpler approach would be to just re-render content area with a subset of getTemplate
+             // But for now let's just use the direct injector as before with fallback
              if (newType === 'title') {
-                 inputHtml = '<input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" />';
+                 newSection.querySelector('.content-area').innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-2 w-1/4">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Heading Level</label>
+                            <select class="level-selector border-b border-black-soft/20 py-2 focus:border-gold outline-none bg-transparent font-light text-sm">
+                                <option value="h2">H2 (Large)</option>
+                                <option value="h3">H3 (Medium)</option>
+                                <option value="h4">H4 (Small)</option>
+                            </select>
+                        </div>
+                        <input type="text" class="content-input w-full border-b border-black-soft/20 py-2 focus:border-gold outline-none font-medium text-lg" placeholder="Enter section title" />
+                    </div>
+                `;
              } else if (newType === 'paragraph') {
-                 inputHtml = '<textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text..."></textarea>';
-             } else if (newType === 'image_single') {
-                 inputHtml = `
+                 newSection.querySelector('.content-area').innerHTML = `
                     <div class="flex flex-col gap-2">
-                        <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image (Overrides existing)</label>
-                        <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                        ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                        <div class="flex gap-2 mb-1">
+                            <button type="button" onclick="formatText(this, 'b')" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">B</button>
+                            <button type="button" onclick="formatText(this, 'i')" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">I</button>
+                            <button type="button" onclick="addLink(this)" class="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gold hover:text-white transition-colors uppercase tracking-widest">Link</button>
+                        </div>
+                        <textarea class="content-input w-full border border-black-soft/10 p-3 focus:border-gold outline-none font-light text-sm resize-y min-h-[100px]" placeholder="Enter paragraph text..."></textarea>
+                    </div>
+                `;
+             } else if (newType === 'image_single') {
+                 newSection.querySelector('.content-area').innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Upload New Image</label>
+                            <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Alt Text</label>
+                            <input type="text" class="alt-input-1 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="Describe image for SEO" />
+                        </div>
                     </div>
                 `;
              } else if (newType === 'image_double') {
-                 inputHtml = `
-                    <div class="grid grid-cols-2 gap-4">
-                         <div class="flex flex-col gap-2">
-                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
-                            <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                            ${existing1 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing1}" target="_blank" class="underline">View</a></div>` : ''}
+                 newSection.querySelector('.content-area').innerHTML = `
+                    <div class="grid grid-cols-2 gap-8">
+                         <div class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Left</label>
+                                <input type="file" name="section_${id}_img_1" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Alt Text (Left)</label>
+                                <input type="text" class="alt-input-1 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="SEO description" />
+                            </div>
                         </div>
-                         <div class="flex flex-col gap-2">
-                            <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
-                            <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
-                            ${existing2 ? `<div class="text-[10px] text-black-soft/40">Current: <a href="${existing2}" target="_blank" class="underline">View</a></div>` : ''}
+                         <div class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Image Right</label>
+                                <input type="file" name="section_${id}_img_2" accept="image/*" class="font-light text-xs text-black-soft/60" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] uppercase tracking-[0.2em] text-black-soft/60">Alt Text (Right)</label>
+                                <input type="text" class="alt-input-2 border-b border-black-soft/20 py-2 focus:border-gold outline-none font-light text-sm" placeholder="SEO description" />
+                            </div>
                         </div>
                     </div>
                 `;
              }
-             
-             newSection.querySelector('.content-area').innerHTML = inputHtml; 
              renderPreview();
         });
 
@@ -309,6 +463,11 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
           document.title = `Edit ${post.title} | Admin`;
           postIdInput.value = post.id;
           titleInput.value = post.title || '';
+          document.getElementById('slug').value = post.slug || '';
+          document.getElementById('author').value = post.author || '';
+          document.getElementById('status').value = post.status || 'published';
+          document.getElementById('meta_title').value = post.meta_title || '';
+          document.getElementById('meta_description').value = post.meta_description || '';
           descInput.value = post.short_description || '';
           
           if (post.main_image) {
@@ -318,7 +477,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
           }
 
           sections.forEach(s => {
-              addSection(s.type, s.content_text || '', s.image_path_1 || '', s.image_path_2 || '');
+              addSection(s.type, s.content_text || '', s.image_path_1 || '', s.image_path_2 || '', s.title_level || 'h2', s.image_alt_1 || '', s.image_alt_2 || '');
           });
 
           renderPreview();
@@ -362,14 +521,22 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
                 existing_image_2: el.dataset.existing2
             };
 
-            if (type === 'title' || type === 'paragraph') {
+            if (type === 'title') {
+                const input = el.querySelector('.content-input');
+                const level = el.querySelector('.level-selector');
+                sectionData.content = input ? input.value : '';
+                sectionData.title_level = level ? level.value : 'h2';
+            } else if (type === 'paragraph') {
                 const input = el.querySelector('.content-input');
                 sectionData.content = input ? input.value : '';
             } else if (type === 'image_single') {
                 sectionData.image_1_key = `section_${id}_img_1`;
+                sectionData.image_alt_1 = el.querySelector('.alt-input-1')?.value || '';
             } else if (type === 'image_double') {
                 sectionData.image_1_key = `section_${id}_img_1`;
                 sectionData.image_2_key = `section_${id}_img_2`;
+                sectionData.image_alt_1 = el.querySelector('.alt-input-1')?.value || '';
+                sectionData.image_alt_2 = el.querySelector('.alt-input-2')?.value || '';
             }
 
             sections.push(sectionData);
