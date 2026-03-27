@@ -19,7 +19,7 @@ import Header from '../components/Header.astro';
   <Header />
   
   <main class="min-h-screen flex items-center justify-center px-6 pt-24 bg-beige-light">
-    <div class="max-w-2xl text-center space-y-6">
+    <div class="relative max-w-2xl text-center space-y-6">
       <h1 class="text-4xl md:text-5xl font-light text-black-soft">Thank You!</h1>
       <p class="text-xl text-black-soft/70 font-light leading-relaxed">
         Thank you for your request! A member of our team will reach out shortly to follow up and discuss your project.
@@ -32,6 +32,21 @@ import Header from '../components/Header.astro';
           Return to Homepage
         </a>
       </div>
+      <!-- Ground truth conversion pixel (solo página de confirmación; ts en tiempo de carga) -->
+      <img
+        id="xad-ground-truth-pixel"
+        alt=""
+        width="1"
+        height="1"
+        class="absolute w-px h-px -left-[9999px] border-0 opacity-0 pointer-events-none"
+        loading="eager"
+      />
+      <script is:inline>
+        (function () {
+          var el = document.getElementById('xad-ground-truth-pixel');
+          if (el) el.src = 'https://bidagent.xad.com/conv/287323?ts=' + Date.now();
+        })();
+      </script>
     </div>
   </main>
 </Layout>
