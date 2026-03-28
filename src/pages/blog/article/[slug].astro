@@ -2,8 +2,25 @@
 import Layout from '../../../layouts/Layout.astro';
 import Header from '../../../components/Header.astro';
 
-// This is still using client-side fetch for content to match the original architecture,
-// but now it extracts the slug from the URL path.
+/** Rutas estáticas: mismo origen que el proxy de Vite (`npm run backend`). Si PHP no está arriba en el build, la lista queda vacía y el build igual termina. */
+export async function getStaticPaths() {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/blog.php?action=list');
+    if (!res.ok) return [];
+    const json = (await res.json()) as {
+      success?: boolean;
+      data?: { slug?: string; status?: string }[];
+    };
+    if (!json?.success || !Array.isArray(json.data)) return [];
+    return json.data
+      .filter((p) => p.slug && p.status !== 'draft')
+      .map((p) => ({ params: { slug: p.slug as string } }));
+  } catch {
+    return [];
+  }
+}
+
+// Contenido del artículo sigue cargándose en el cliente vía fetch.
 ---
 
 <Layout title="Article | Blog">
