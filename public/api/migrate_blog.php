@@ -1,54 +1,75 @@
 <?php
 /**
- * Database Migration Script for Blog SEO & UX Overhaul
- * 
- * Run this script to add properties to the blog_posts and blog_sections tables.
- * Usage: php migrate_blog.php
+ * Adds columns expected by blog.php (SEO meta, author, status, section alts).
+ * Works on standard MySQL (no ADD COLUMN IF NOT EXISTS).
+ *
+ * From project root: php public/api/migrate_blog.php
+ * After running in production, remove or protect this file.
  */
 
-require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/config.php';
+
+if (!headers_sent()) {
+    header_remove('Content-Type');
+    header('Content-Type: text/plain; charset=UTF-8');
+}
+
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+    );
+    $stmt->execute([$table, $column]);
+    return (int) $stmt->fetchColumn() > 0;
+}
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=$charset", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-    ]);
-
     echo "Starting migration...\n";
 
-    // 1. Update blog_posts table
-    $sql1 = "ALTER TABLE blog_posts 
-            ADD COLUMN IF NOT EXISTS meta_title VARCHAR(255) DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS meta_description TEXT DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS author VARCHAR(100) DEFAULT 'BA Kitchen & Bath',
-            ADD COLUMN IF NOT EXISTS status ENUM('published', 'draft') DEFAULT 'published'";
-    
-    $pdo->exec($sql1);
-    echo "✔ blog_posts table updated.\n";
+    if (!columnExists($pdo, 'blog_posts', 'meta_title')) {
+        $pdo->exec('ALTER TABLE blog_posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER title');
+        echo "✔ blog_posts.meta_title\n";
+    }
+    if (!columnExists($pdo, 'blog_posts', 'meta_description')) {
+        $pdo->exec('ALTER TABLE blog_posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title');
+        echo "✔ blog_posts.meta_description\n";
+    }
+    if (!columnExists($pdo, 'blog_posts', 'author')) {
+        $pdo->exec("ALTER TABLE blog_posts ADD COLUMN author VARCHAR(100) DEFAULT 'BA Kitchen & Bath'");
+        echo "✔ blog_posts.author\n";
+    }
+    if (!columnExists($pdo, 'blog_posts', 'status')) {
+        $pdo->exec("ALTER TABLE blog_posts ADD COLUMN status ENUM('published','draft') DEFAULT 'published'");
+        echo "✔ blog_posts.status\n";
+    }
 
-    // 2. Update blog_sections table
-    $sql2 = "ALTER TABLE blog_sections 
-            ADD COLUMN IF NOT EXISTS title_level VARCHAR(5) DEFAULT 'h2',
-            ADD COLUMN IF NOT EXISTS image_alt_1 VARCHAR(255) DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS image_alt_2 VARCHAR(255) DEFAULT NULL";
-    
-    $pdo->exec($sql2);
-    echo "✔ blog_sections table updated.\n";
+    if (!columnExists($pdo, 'blog_sections', 'title_level')) {
+        $pdo->exec("ALTER TABLE blog_sections ADD COLUMN title_level VARCHAR(5) DEFAULT 'h2' AFTER type");
+        echo "✔ blog_sections.title_level\n";
+    }
+    if (!columnExists($pdo, 'blog_sections', 'image_alt_1')) {
+        $pdo->exec('ALTER TABLE blog_sections ADD COLUMN image_alt_1 VARCHAR(255) DEFAULT NULL AFTER image_path_1');
+        echo "✔ blog_sections.image_alt_1\n";
+    }
+    if (!columnExists($pdo, 'blog_sections', 'image_alt_2')) {
+        $pdo->exec('ALTER TABLE blog_sections ADD COLUMN image_alt_2 VARCHAR(255) DEFAULT NULL AFTER image_path_2');
+        echo "✔ blog_sections.image_alt_2\n";
+    }
 
-    // 3. Initialize slugs for existing posts (optional but recommended)
     $stmt = $pdo->query("SELECT id, title FROM blog_posts WHERE slug IS NULL OR slug = ''");
     $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     if (count($posts) > 0) {
-        $updateSlug = $pdo->prepare("UPDATE blog_posts SET slug = ? WHERE id = ?");
+        $updateSlug = $pdo->prepare('UPDATE blog_posts SET slug = ? WHERE id = ?');
         foreach ($posts as $post) {
-            $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $post['title'])));
+            $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $post['title']), '-'));
             $updateSlug->execute([$slug, $post['id']]);
         }
-        echo "✔ Slugs initialized for " . count($posts) . " posts.\n";
+        echo '✔ Slugs initialized for ' . count($posts) . " posts.\n";
     }
 
     echo "\nMigration completed successfully!\n";
-
 } catch (PDOException $e) {
-    die("ERROR: " . $e->getMessage() . "\n");
+    http_response_code(500);
+    echo 'ERROR: ' . $e->getMessage() . "\n";
+    exit(1);
 }

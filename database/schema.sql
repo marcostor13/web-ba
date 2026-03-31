@@ -54,7 +54,11 @@ CREATE TABLE IF NOT EXISTS project_images (
 CREATE TABLE IF NOT EXISTS blog_posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    meta_title VARCHAR(255) DEFAULT NULL,
+    meta_description TEXT,
     slug VARCHAR(255) UNIQUE NOT NULL,
+    author VARCHAR(100) DEFAULT 'BA Kitchen & Bath',
+    status ENUM('published', 'draft') DEFAULT 'published',
     short_description TEXT,
     main_image VARCHAR(512) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -66,9 +70,12 @@ CREATE TABLE IF NOT EXISTS blog_sections (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
     type ENUM('title', 'paragraph', 'image_single', 'image_double') NOT NULL,
+    title_level VARCHAR(5) DEFAULT 'h2',
     content_text TEXT, -- For title or paragraph
     image_path_1 VARCHAR(512), -- For image_single or first of double
+    image_alt_1 VARCHAR(255) DEFAULT NULL,
     image_path_2 VARCHAR(512), -- For second of double
+    image_alt_2 VARCHAR(255) DEFAULT NULL,
     order_index INT NOT NULL DEFAULT 0,
     FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
 );
